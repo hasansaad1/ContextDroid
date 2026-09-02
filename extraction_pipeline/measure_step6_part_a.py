@@ -353,7 +353,7 @@ def main() -> int:
     print(report)
     pending = sum(1 for r in rows if r["classification"] == "PENDING")
     if pending:
-        print(f"\n{pending} sessions pending fresh logs — run collect_step6_scrollable_rescore.py")
+        print(f"\n{pending} sessions pending fresh logs — run _archive/verification_harness/collect_step6_scrollable_rescore.py")
         return 2
     return 0
 

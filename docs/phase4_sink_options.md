@@ -21,7 +21,7 @@ Darwin Hasans-MacBook-Pro.local 25.3.0 Darwin Kernel Version 25.3.0: Wed Jan 28 
 === docker ===
 /usr/local/bin/docker
 Docker version 28.5.1, build e180ab8
-Cannot connect to the Docker daemon at unix:///Users/hasanagbaria/.docker/run/docker.sock. Is the docker daemon running?
+Cannot connect to the Docker daemon at unix://<HOME>/.docker/run/docker.sock. Is the docker daemon running?
 === dnsmasq ===
 dnsmasq: not found
 === mitmproxy ===
@@ -31,7 +31,7 @@ Python 3.14.3
 === brew ===
 /opt/homebrew/bin/brew
 === emulator ===
-/Users/hasanagbaria/Library/Android/sdk/emulator/emulator
+<HOME>/Library/Android/sdk/emulator/emulator
 === avd abrg_mw ===
 (present; config: abi.type=arm64-v8a, image android-29/google_apis/arm64-v8a, pixel_2, hw.ramSize=2G)
 === pf ===
@@ -41,6 +41,8 @@ sudo: a password is required        # interactive sudo not available to agent
 UDP 5353 bind FAIL [Errno 48] Address already in use
 TCP 8080 bind OK
 ```
+
+Home-directory paths in the block above were redacted to `<HOME>`; the output is otherwise verbatim.
 
 Emulator help confirms `-dns-server` and `-http-proxy` are supported on this SDK.
 
