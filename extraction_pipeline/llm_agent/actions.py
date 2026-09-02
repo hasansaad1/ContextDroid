@@ -15,7 +15,12 @@ from pathlib import Path
 from typing import IO, Any, Optional
 
 from .dialogs import _element_is_permission_dialog_widget, _hierarchy_shows_permission_dialog, _package_is_permission_dialog_surface
-from .goals import _goal_hint_for_repair, _goal_opens_search_ui, _screen_map_anchors
+from .goals import (
+    _goal_hint_for_repair,
+    _goal_opens_search_ui,
+    _pick_search_launch_tap_from_elements,
+    _screen_map_anchors,
+)
 from .action_model import _action_signature_for_candidate
 from .navigation import _action_is_back_like, _action_is_search_like
 from .screen import (
@@ -36,6 +41,9 @@ from .config import (
     _INPUT_SUBMIT_SEARCH_INFER,
     _SEARCH_UI_HINT_RE,
 )
+
+_SUBMIT_SEQ_ALLOWED = frozenset({"enter", "tab_enter", "enter_then_tab_enter", "search"})
+
 
 def _action_xy(action: dict[str, Any]) -> tuple[int, int] | None:
     if action.get("x") is None or action.get("y") is None:
@@ -210,7 +218,9 @@ def _sanitize_primary_ux_action(
     action = _guard_planner_action(action, elements, target_pkg, strict_visible_tap=True)
     at = str(action.get("action_type") or "wait")
     reason = str(action.get("reason") or "")
-    if at == "tap" and reason.startswith("guard_"):
+    if (at == "tap" or (at == "wait" and reason.startswith("guard_"))) and reason.startswith(
+        "guard_"
+    ):
         pick = _pick_primary_ux_visible_tap(elements, target_pkg, rotate_offset=tap_rotate)
         if pick:
             return pick, tap_rotate + 1
@@ -316,6 +326,38 @@ def _adb_clear_focused_field_before_replace(adb_bin: str) -> None:
 def _fallback_probe_query_for_input() -> str:
     q = os.environ.get("CONTEXTDROID_LLM_INPUT_FALLBACK_QUERY", "demo").strip()
     return q or "demo"
+
+
+def _resource_id_looks_like_payment_or_address_field(rid: str) -> bool:
+    """Payment/send flows — not app-wide search query fields."""
+    low = (rid or "").lower()
+    return any(
+        tok in low
+        for tok in (
+            "sendinput",
+            "send_input",
+            "payment",
+            "address",
+            "recipient",
+            "amount",
+            "memo",
+        )
+    )
+
+
+def _input_text_needs_sanitization(text: str) -> bool:
+    """Reject clipboard dumps, prompt echoes, and other non-probe blobs."""
+    s = (text or "").strip()
+    if not s:
+        return False
+    if len(s) > 96:
+        return True
+    if "\n" in s or s.count(".") >= 3:
+        return True
+    lowered = s.lower()
+    if "root cause" in lowered or "production-ready" in lowered or "do not guess" in lowered:
+        return True
+    return False
 
 def _fill_tap_coords_from_element(
     action: dict[str, Any], elements: list[dict[str, str]]
@@ -543,6 +585,7 @@ def _repair_input_action_for_execution(
     *,
     ux_goals: list[str] | None,
     ux_goal_idx: int,
+    target_pkg: str,
 ) -> dict[str, Any]:
     """Fill empty LLM `input` text and retarget missing resource_ids to visible query fields."""
     if str(action.get("action_type")) != "input":
@@ -557,12 +600,46 @@ def _repair_input_action_for_execution(
     typing_goal = any(
         k in goal_hint for k in ("enter", "type", "input", "search", "query", "package", "find", "filter")
     )
-    if needs_fill and typing_goal:
+    if typing_goal and (needs_fill or _input_text_needs_sanitization(str(txt or ""))):
         out["text"] = _fallback_probe_query_for_input()
         logging.info(
-            "Repaired empty input text for UX goal (%s); using CONTEXTDROID_LLM_INPUT_FALLBACK_QUERY.",
+            "Repaired input text for UX goal (%s); using CONTEXTDROID_LLM_INPUT_FALLBACK_QUERY.",
             ux_goals[ux_goal_idx] if ux_goals else "?",
         )
+
+    rid = str(out.get("target_resource_id", "")).strip()
+    if typing_goal and _resource_id_looks_like_payment_or_address_field(rid):
+        scored_payment: list[tuple[int, dict[str, str]]] = []
+        for e in elements:
+            cn = (e.get("class_name") or "").lower()
+            erid = str(e.get("resource_id") or "").strip()
+            if "edittext" not in cn and "autocomplete" not in cn:
+                continue
+            if _resource_id_looks_like_payment_or_address_field(erid):
+                continue
+            blob = f"{erid} {e.get('content_desc') or ''}".lower()
+            score = 10
+            if _SEARCH_UI_HINT_RE.search(blob):
+                score += 20
+            if "query" in blob:
+                score += 8
+            scored_payment.append((score, e))
+        scored_payment.sort(key=lambda x: -x[0])
+        if scored_payment:
+            out["target_resource_id"] = str(scored_payment[0][1].get("resource_id") or "").strip()
+            rid = out["target_resource_id"]
+            logging.info(
+                "Retargeted search input away from payment/send field to %s.",
+                rid,
+            )
+        else:
+            launch = _pick_search_launch_tap_from_elements(elements, target_pkg)
+            if launch:
+                logging.info(
+                    "Search input targeted payment field %s with no query field; opening search first.",
+                    rid,
+                )
+                return launch
 
     rid = str(out.get("target_resource_id", "")).strip()
     rid_present = bool(rid) and any(e.get("resource_id") == rid for e in elements)

@@ -100,6 +100,17 @@ def _derive_primary_ux_micro_intent(
             "instruction": "Dismiss or back out of the dialog once, then return to the app's main surface.",
             "preferred_actions": ["tap", "back"],
         }
+    if screen_role in ("text_entry", "form") or (
+        state.get("text_entry_visible") and not state.get("search_open")
+    ):
+        return {
+            "intent": "complete_text_entry",
+            "instruction": (
+                "Use action_type=input with non-empty text on the visible text field; "
+                "do not swipe a form or login surface."
+            ),
+            "preferred_actions": ["input", "tap"],
+        }
     if stagnant >= 2:
         return {
             "intent": "escape_stagnant_surface",

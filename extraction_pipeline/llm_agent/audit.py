@@ -31,6 +31,11 @@ from protocol_config import (
 )
 
 from .actions import _effective_submit_search
+from .goals import (
+    _goal_needs_text_entry_field,
+    _is_degenerate_transitions_goal,
+    _single_typing_goal_substantiated,
+)
 from .config import (
     _FOREGROUND_DIALOG_PACKAGES,
     _FOREGROUND_TRANSIENT_PACKAGES,
@@ -65,7 +70,10 @@ def _compute_audit_assessment(
     prop_reason = str(proposal.get("reason") or "")
     exec_reason = str(executed.get("reason") or "")
     engine_route_override = (
-        exec_reason.startswith("engine_route_") or exec_reason == "engine_goal_status_satisfied"
+        exec_reason.startswith(
+            ("engine_route_", "engine_fallback_", "engine_prose_spiral_", "engine_goal_")
+        )
+        or exec_reason == "engine_goal_status_satisfied"
     ) and prop_reason.startswith("planner_contract_")
     primary_controller_override = (
         exec_reason.startswith("engine_primary_")
@@ -157,6 +165,14 @@ def _json_equivalent(a: dict[str, Any], b: dict[str, Any]) -> bool:
         b or {}, sort_keys=True, ensure_ascii=False
     )
 
+
+def _is_intentional_controller_execution(reason: str) -> bool:
+    """Engine/primary-UX controller output is direct execution, not planner repair."""
+    if reason.startswith("tap_repair_"):
+        return False
+    return reason.startswith(("engine_", "primary_ux_"))
+
+
 def _execution_kind_for_step(
     *,
     pipeline_phase: str,
@@ -193,14 +209,10 @@ def _execution_kind_for_step(
         return "blocked"
     if reason.startswith("guard_"):
         return "blocked"
-    if (
-        reason == "engine_goal_status_satisfied"
-        or reason.startswith("engine_route_")
-        or reason.startswith("engine_primary_")
-    ):
-        return "direct"
-    if reason.startswith("tap_repair_") or reason.startswith("engine_"):
+    if reason.startswith("tap_repair_"):
         return "repaired"
+    if _is_intentional_controller_execution(reason):
+        return "direct"
     if at == "wait" and not ok:
         return "blocked"
     if "target_not_found" in str(outcome or "") or "fallback_rid_missing" in str(outcome or ""):
@@ -209,8 +221,22 @@ def _execution_kind_for_step(
         return "repaired"
     return "direct"
 
+def _effective_execution_kind(ev: dict[str, Any]) -> str:
+    """Recompute execution_kind from stored proposal/execute fields when available."""
+    executed = ev.get("parsed_action") or {}
+    if executed:
+        return _execution_kind_for_step(
+            pipeline_phase=str(ev.get("pipeline_phase") or ""),
+            proposal=ev.get("model_proposal") or {},
+            executed=executed,
+            ok=bool(ev.get("action_success")),
+            outcome=str(ev.get("action_outcome") or ""),
+        )
+    return str(ev.get("execution_kind") or "")
+
+
 def _execution_counts_as_ux_progress(ev: dict[str, Any]) -> bool:
-    kind = str(ev.get("execution_kind") or "")
+    kind = _effective_execution_kind(ev)
     if kind not in ("direct", "dialog"):
         return False
     pa = ev.get("parsed_action") or {}
@@ -219,7 +245,7 @@ def _execution_counts_as_ux_progress(ev: dict[str, Any]) -> bool:
 
 def _event_progress_score(ev: dict[str, Any]) -> int:
     """Heuristic per-step progress score for loop quality gating."""
-    if not _execution_counts_as_ux_progress(ev) and str(ev.get("execution_kind") or "") not in ("exploration",):
+    if not _execution_counts_as_ux_progress(ev) and _effective_execution_kind(ev) not in ("exploration",):
         return 0
     pa = ev.get("parsed_action") or {}
     at = str(pa.get("action_type") or "wait")
@@ -258,10 +284,34 @@ def _required_goal_index_for_human_ux_pass(goal_count: int) -> int:
         return 1
     return min(goal_count - 1, max(2, (goal_count + 2) // 3))
 
-def _is_guard_or_planner_contract_issue(ev: dict[str, Any]) -> bool:
-    kind = str(ev.get("execution_kind") or "")
-    if kind in ("blocked", "repaired", "recovery"):
+def _is_intentional_controller_recovery(ev: dict[str, Any]) -> bool:
+    """Successful engine/primary-UX substitutions are designed recovery, not guard failures."""
+    if not ev.get("action_success"):
+        return False
+    pa = ev.get("parsed_action") or {}
+    reason = str(pa.get("reason") or "")
+    if reason.startswith(
+        (
+            "engine_route_",
+            "engine_primary_",
+            "engine_goal_",
+            "engine_prose_spiral_",
+            "engine_fallback_",
+            "engine_all_wait_",
+            "engine_empty_state_",
+            "primary_ux_",
+        )
+    ):
         return True
+    audit = ev.get("audit_assessment") or {}
+    codes = {str(c) for c in (audit.get("codes") or [])}
+    return "engine_replaced_planner_contract_failure" in codes
+
+
+def _is_guard_or_planner_contract_issue(ev: dict[str, Any]) -> bool:
+    if _is_intentional_controller_recovery(ev):
+        return False
+    kind = _effective_execution_kind(ev)
     pa = ev.get("parsed_action") or {}
     reason = str(pa.get("reason") or "")
     outcome = str(ev.get("action_outcome") or "")
@@ -282,13 +332,28 @@ def _is_guard_or_planner_contract_issue(ev: dict[str, Any]) -> bool:
         return True
     if "target_not_found" in outcome or "fallback_rid_missing" in outcome:
         return True
+    if kind == "blocked":
+        return True
+    if kind == "recovery":
+        phase = str(ev.get("pipeline_phase") or "")
+        return phase in ("execute", "primary_ux", "legacy")
+    if kind == "repaired":
+        if reason.startswith(("guard_", "planner_contract_", "planner_target_")):
+            return True
+        if str(pa.get("action_type") or "") == "wait":
+            return True
+        return bool(
+            codes
+            & {
+                "guard_invisible_tap_target",
+                "planner_returned_unusable_structure",
+            }
+        )
     return bool(
         codes
         & {
-            "guard_modified_planner_output",
             "guard_invisible_tap_target",
             "planner_returned_unusable_structure",
-            "no_direct_action_step",
         }
     )
 
@@ -354,7 +419,21 @@ def _human_ux_evaluate(
         }
     )
 
-    if ux_goals and len(ux_goals) > 1 and n_act >= 8:
+    if ux_goals and len(ux_goals) == 1 and n_act >= 8:
+        lone = ux_goals[0]
+        if _is_degenerate_transitions_goal(lone):
+            gp_ok = False
+            gp_detail = f"degenerate_single_goal={lone!r}"
+        elif _goal_needs_text_entry_field(lone) and not _single_typing_goal_substantiated(lone, actions):
+            gp_ok = False
+            gp_detail = "single_typing_goal_without_input_event"
+        elif final_ux_goal_idx <= 0:
+            gp_ok = False
+            gp_detail = f"single_goal_unadvanced index={final_ux_goal_idx}"
+        else:
+            gp_ok = True
+            gp_detail = f"single_goal_advanced index={final_ux_goal_idx}"
+    elif ux_goals and len(ux_goals) > 1 and n_act >= 8:
         gp_ok = final_ux_goal_idx >= 1
         gp_detail = f"final_goal_index={final_ux_goal_idx} of {len(ux_goals)}"
     else:
@@ -366,9 +445,23 @@ def _human_ux_evaluate(
     scored_count = len(scored_events)
     execution_kind_counts: dict[str, int] = {}
     for ev in scored_events:
-        kind = str(ev.get("execution_kind") or "unclassified")
+        kind = _effective_execution_kind(ev) or "unclassified"
         execution_kind_counts[kind] = execution_kind_counts.get(kind, 0) + 1
-    if ux_goals and len(ux_goals) > 1 and n_act >= 8:
+    if ux_goals and len(ux_goals) == 1 and n_act >= 8:
+        lone = ux_goals[0]
+        if _is_degenerate_transitions_goal(lone):
+            goal_progress_ok = False
+            goal_progress_detail = f"degenerate_single_goal={lone!r}"
+        elif _goal_needs_text_entry_field(lone) and not _single_typing_goal_substantiated(lone, actions):
+            goal_progress_ok = False
+            goal_progress_detail = "single_typing_goal_without_input_event"
+        elif final_ux_goal_idx <= 0:
+            goal_progress_ok = False
+            goal_progress_detail = f"single_goal_unadvanced index={final_ux_goal_idx}"
+        else:
+            goal_progress_ok = True
+            goal_progress_detail = f"single_goal_advanced index={final_ux_goal_idx}"
+    elif ux_goals and len(ux_goals) > 1 and n_act >= 8:
         required_goal_idx = _required_goal_index_for_human_ux_pass(len(ux_goals))
         goal_progress_ok = final_ux_goal_idx >= required_goal_idx
         goal_progress_detail = (

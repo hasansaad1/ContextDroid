@@ -20,10 +20,6 @@ from .config import (
     _MAX_AGENT_XML_TOKENS,
     _UI_DUMP_TIMEOUT_SEC,
 )
-
-
-
-
 def _is_visible_and_interactive(node: ET.Element) -> bool:
     if node.attrib.get("enabled", "true") != "true":
         return False
@@ -70,6 +66,7 @@ def _normalized_elements(xml_text: str) -> list[dict[str, str]]:
             "text": node.attrib.get("text", "").strip(),
             "class_name": node.attrib.get("class", "").strip(),
             "bounds": node.attrib.get("bounds", "").strip(),
+            "clickable": node.attrib.get("clickable", "false").strip(),
         }
         elements.append(item)
     elements.sort(
@@ -185,43 +182,61 @@ def _target_app_widget_count(elements: list[dict[str, str]], package_name: str) 
             count += 1
     return count
 
-def _dump_filtered_screen(adb_bin: str, package_name: str) -> tuple[list[dict[str, str]], str, str]:
-    elements, _, raw_xml = dump_clean_screen(adb_bin)
+def _dump_filtered_screen(
+    adb_bin: str,
+    package_name: str,
+    *,
+    timeout_sec: float | None = None,
+) -> tuple[list[dict[str, str]], str, str]:
+    elements, _, raw_xml = dump_clean_screen(adb_bin, timeout_sec=timeout_sec)
     elements = _filter_widgets_for_target(elements, package_name)
     return elements, _screen_hash(elements), raw_xml
 
-def dump_clean_screen(adb_bin: str) -> tuple[list[dict[str, str]], str, str]:
+def dump_clean_screen(
+    adb_bin: str,
+    *,
+    timeout_sec: float | None = None,
+) -> tuple[list[dict[str, str]], str, str]:
     """Accessibility dump; returns empty on failure/timeout (does not abort the session)."""
+    from subprocess_util import run_subprocess_with_timeout
+
+    trace_path = (os.environ.get("CONTEXTDROID_SCREEN_DUMP_TRACE") or "").strip()
+    if trace_path:
+        try:
+            with Path(trace_path).open("a", encoding="utf-8") as fh:
+                fh.write(f"{time.time():.3f} dump_clean_screen\n")
+        except OSError:
+            pass
+
     device_xml = "/sdcard/window_dump.xml"
+    dump_timeout = timeout_sec if timeout_sec is not None else _UI_DUMP_TIMEOUT_SEC
     try:
-        run1 = subprocess.run(
+        run1 = run_subprocess_with_timeout(
             [adb_bin, "shell", "uiautomator", "dump", device_xml],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=_UI_DUMP_TIMEOUT_SEC,
+            timeout_sec=dump_timeout,
         )
-    except subprocess.TimeoutExpired:
-        logging.warning(
-            "uiautomator dump timed out after %.0fs; continuing session.",
-            _UI_DUMP_TIMEOUT_SEC,
-        )
-        return [], "", ""
     except OSError as exc:
         logging.warning("uiautomator dump failed: %s", exc)
         return [], "", ""
+    if run1.returncode == 124:
+        logging.warning(
+            "uiautomator dump timed out after %.0fs; continuing session.",
+            dump_timeout,
+        )
+        return [], "", ""
     if run1.returncode != 0:
         return [], "", ""
+    cat_timeout = min(dump_timeout, 12.0)
     try:
-        run2 = subprocess.run(
+        run2 = run_subprocess_with_timeout(
             [adb_bin, "shell", "cat", device_xml],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=min(_UI_DUMP_TIMEOUT_SEC, 12.0),
+            timeout_sec=cat_timeout,
         )
-    except (subprocess.TimeoutExpired, OSError) as exc:
+    except OSError as exc:
         logging.warning("Reading window dump failed: %s", exc)
+        return [], "", ""
+    if run2.returncode == 124:
+        logging.warning("Reading window dump timed out after %.0fs.", cat_timeout)
         return [], "", ""
     if run2.returncode != 0:
         return [], "", ""

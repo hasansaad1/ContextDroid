@@ -1,0 +1,4 @@
+# Pinned to versions used for v2 collection (2026-07/08). Adjust only with regression tests.
+frida==17.9.3
+frida-tools==14.8.1
+pandas==3.0.2

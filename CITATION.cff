@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this repository in academic work, please cite it as below."
+title: "ContextDroid: Reproducible Dynamic Android Behavior Dataset Pipeline"
+type: software
+authors:
+  - family-names: "Agbaria"
+    given-names: "Hasan"
+repository-code: "https://github.com/hasansaad1/ContextDroid"
+url: "https://github.com/hasansaad1/ContextDroid"
+license: "MIT"
+version: "v0.1.0"
+date-released: "2026-05-01"
+abstract: >
+  ContextDroid is a public, reproducible pipeline for generating dynamic Android
+  behavior artifacts from benign APKs in an emulator sandbox using Frida, strace,
+  and controlled UI stimulation, with traceability-focused metadata and dataset indexing.
+keywords:
+  - android
+  - malware-analysis
+  - dynamic-analysis
+  - frida
+  - reproducibility

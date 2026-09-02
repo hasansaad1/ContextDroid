@@ -1,0 +1,6 @@
+{
+  "selection_iqr": {
+    "apk_size_low": 2400000,
+    "apk_size_high": 20000000
+  }
+}

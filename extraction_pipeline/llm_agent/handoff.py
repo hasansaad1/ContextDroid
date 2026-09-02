@@ -31,10 +31,12 @@ from .screen import (
     _screen_hash,
     _screen_root_signature,
     _target_app_widget_count,
+    dump_clean_screen,
 )
 from .config import (
     _HANDOFF_EXPLORE_SETTLED_MIN_LANDMARK,
     _HANDOFF_EXPLORE_SETTLED_MIN_VISITS,
+    _ROOT_CAPTURE_DEADLINE_SEC,
     _ROOT_HANDOFF_ATTEMPTS,
     _ROOT_HANDOFF_BACK_STEPS,
     _ROOT_HANDOFF_CLEAR_TASK,
@@ -140,12 +142,24 @@ def _evaluate_execute_root_candidate(
 
 def _capture_execute_root_reference(adb_bin: str, package_name: str) -> dict[str, Any]:
     """Start the launcher/root activity and capture the screen navigation begins from."""
+    deadline = time.monotonic() + _ROOT_CAPTURE_DEADLINE_SEC
     try:
         if _ROOT_HANDOFF_RELAUNCH:
+            if time.monotonic() >= deadline:
+                return {"ok": False, "reason": "root_reference_capture_timeout"}
             _restart_target_root(adb_bin, package_name)
-        elements, screen_hash, raw_xml = _dump_filtered_screen(adb_bin, package_name)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return {"ok": False, "reason": "root_reference_capture_timeout"}
+        elements, screen_hash, raw_xml = _dump_filtered_screen(
+            adb_bin,
+            package_name,
+            timeout_sec=max(1.0, remaining),
+        )
     except (subprocess.TimeoutExpired, OSError) as exc:
         return {"ok": False, "reason": f"root_reference_capture_error:{type(exc).__name__}"}
+    if time.monotonic() >= deadline:
+        return {"ok": False, "reason": "root_reference_capture_timeout"}
     ok, reason = _screen_is_valid_execute_root(elements, raw_xml=raw_xml, target_pkg=package_name)
     if not ok:
         return {
@@ -466,6 +480,9 @@ def _recover_empty_execute_screen(
     ok, screen_reason = _screen_is_valid_execute_root(
         elements, raw_xml=raw_xml, target_pkg=package_name
     )
+    if ok and not elements:
+        ok = False
+        screen_reason = "empty_hierarchy_after_validation"
     return {
         "ok": ok,
         "reason": reason,

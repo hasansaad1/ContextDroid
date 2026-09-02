@@ -1,0 +1,13 @@
+# One package id per line.
+# Curate this file to ensure reproducible dataset generation.
+
+org.fossify.calendar
+org.fossify.contacts
+org.fossify.notes
+org.mozilla.fennec_fdroid
+org.kde.kdeconnect_tp
+org.videolan.vlc
+org.tasks
+de.danoeh.antennapod
+com.termux
+com.github.catfriend1.syncthingfork

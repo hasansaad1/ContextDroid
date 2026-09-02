@@ -1,0 +1,12 @@
+{
+  "counts_by_source": {
+    "malradar": 0,
+    "amd": 0,
+    "drebin": 0,
+    "none": 150
+  },
+  "labelled_rows": 0,
+  "total_rows": 150,
+  "families_ge_3": 0,
+  "family_histogram_labelled_subset": {}
+}

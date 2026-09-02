@@ -1,0 +1,49 @@
+{
+  "version_id": "v1",
+  "created_at": "2026-06-30T15:26:09Z",
+  "parent_version": null,
+  "description": "Initial 129-session FAITHFUL+PARTIAL keep-set; flailing retained and tagged",
+  "source_runs": [
+    "bulk_llm_benign_v6"
+  ],
+  "judge_version": "judge_v1_75pct",
+  "curation_rules": "FAITHFUL+PARTIAL kept; flailing RETAINED tagged FLAILING_SUSPECT; sparse kept; nothing gated on category count or graph viability",
+  "counts": {
+    "total_rows": 129,
+    "included": 129,
+    "excluded": 0,
+    "by_inclusion_status": {
+      "INCLUDED": 129
+    },
+    "by_quality_tag": {
+      "FAITHFUL_VALIDATED": 79,
+      "FLAILING_SUSPECT": 46,
+      "LOW_CONFIDENCE": 4
+    },
+    "by_faithfulness_verdict": {
+      "FAITHFUL": 124,
+      "PARTIAL": 5
+    },
+    "distinct_apps": 129,
+    "by_source_run": {
+      "bulk_llm_benign_v6": 129
+    }
+  },
+  "reproduction": {
+    "commands": [
+      "python3 extraction_pipeline/assemble_working_dataset.py --skip-flailing-filter --faithfulness-json experiment/faithfulness_full_pool.json",
+      "python3 experiments/datasets/snapshot_dataset.py snapshot --version-id v1 --parent-version  --description \"Initial 129-session FAITHFUL+PARTIAL keep-set; flailing retained and tagged\" --working-csv experiment/working_dataset.csv --faithfulness-json experiment/faithfulness_full_pool.json --human-labels experiment/faithfulness_human_label_sheet.csv --judge-version judge_v1_75pct --curation-rules \"FAITHFUL+PARTIAL kept; flailing RETAINED tagged FLAILING_SUSPECT; sparse kept; nothing gated on category count or graph viability\" --retain-flailing"
+    ],
+    "inputs": {
+      "working_csv": "experiment/working_dataset.csv",
+      "faithfulness_json": "experiment/faithfulness_full_pool.json",
+      "human_labels": "experiment/faithfulness_human_label_sheet.csv",
+      "dataset_index": "logs/bulk_llm_benign_v6/dataset_index.csv"
+    }
+  },
+  "known_limitations": [
+    "Faithfulness judge at 75% collapsed agreement with 20-session human validation (below 90% threshold).",
+    "Flailing sessions included for pipeline-build volume, not reference-quality.",
+    "meaningful_event_count and Frida category counts are descriptive only, not inclusion gates."
+  ]
+}

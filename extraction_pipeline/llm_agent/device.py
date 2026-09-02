@@ -19,6 +19,7 @@ from .dialogs import _hierarchy_shows_permission_dialog, _package_is_permission_
 from .screen import dump_clean_screen
 from .config import (
     _BROWSER_PACKAGES,
+    _FOREGROUND_CHOOSER_PACKAGES,
     _FOREGROUND_DIALOG_PACKAGES,
     _FOREGROUND_DUMPSYS_TIMEOUT_SEC,
     _FOREGROUND_TRANSIENT_PACKAGES,
@@ -28,6 +29,105 @@ from .config import (
     _STICKY_FOREGROUND_STRICT,
     _TREAT_DIALOG_PACKAGES_AS_FOREIGN,
 )
+
+
+def strict_foreground_enabled() -> bool:
+    value = os.environ.get("CONTEXTDROID_STRICT_FOREGROUND", "1").strip().lower()
+    return value not in ("0", "false", "no")
+
+
+def foreground_mismatch_limit() -> int:
+    raw = os.environ.get("CONTEXTDROID_FOREGROUND_MISMATCH_LIMIT", "3").strip()
+    try:
+        return max(1, int(raw, 10))
+    except ValueError:
+        return 3
+
+
+def check_target_foreground(adb_bin: str, package_name: str) -> tuple[bool, Optional[str]]:
+    fg = _foreground_package(adb_bin)
+    return _foreground_acceptable(package_name, fg), fg
+
+
+def _list_third_party_packages(adb_bin: str) -> list[str]:
+    result = subprocess.run(
+        [adb_bin, "shell", "pm", "list", "packages", "-3"],
+        capture_output=True,
+        text=True,
+        timeout=45,
+        check=False,
+    )
+    packages: list[str] = []
+    for line in (result.stdout or "").splitlines():
+        line = line.strip()
+        if line.startswith("package:"):
+            pkg = line.split("package:", 1)[1].strip()
+            if pkg:
+                packages.append(pkg)
+    return sorted(set(packages))
+
+
+def isolate_emulator_state(adb_bin: str, target_package: str) -> None:
+    """Reset emulator UI state between APK runs: home + stop other third-party apps."""
+    subprocess.run(
+        [adb_bin, "shell", "input", "keyevent", "3"],
+        check=False,
+        capture_output=True,
+        timeout=12,
+    )
+    time.sleep(0.4)
+    stopped = 0
+    for pkg in _list_third_party_packages(adb_bin):
+        if pkg == target_package:
+            continue
+        subprocess.run(
+            [adb_bin, "shell", "am", "force-stop", pkg],
+            check=False,
+            capture_output=True,
+            timeout=12,
+        )
+        stopped += 1
+    logging.info(
+        "Emulator isolation before %s: force-stopped %d third-party packages and returned home.",
+        target_package,
+        stopped,
+    )
+    time.sleep(0.8)
+
+
+def reboot_emulator(adb_bin: str, *, wait_boot_sec: float = 180.0) -> bool:
+    """Reboot the connected device/emulator and wait for sys.boot_completed."""
+    try:
+        subprocess.run(
+            [adb_bin, "reboot"],
+            check=False,
+            capture_output=True,
+            timeout=30,
+        )
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        logging.warning("adb reboot failed: %s", exc)
+        return False
+
+    deadline = time.monotonic() + max(30.0, wait_boot_sec)
+    while time.monotonic() < deadline:
+        time.sleep(2)
+        try:
+            boot = subprocess.run(
+                [adb_bin, "shell", "getprop", "sys.boot_completed"],
+                capture_output=True,
+                text=True,
+                timeout=12,
+                check=False,
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            continue
+        if (boot.stdout or "").strip() == "1":
+            logging.info("Emulator reboot completed.")
+            time.sleep(2)
+            return True
+    logging.warning("Emulator reboot timed out after %.0fs.", wait_boot_sec)
+    return False
+
 
 def _foreground_package(adb_bin: str) -> Optional[str]:
     """Best-effort foreground package; never raises on adb/dumpsys timeout."""
@@ -89,6 +189,8 @@ def _should_recover_from_foreign_app(package_name: str, fg: Optional[str]) -> bo
         return False
     if fg in _BROWSER_PACKAGES:
         return True
+    if fg in _FOREGROUND_CHOOSER_PACKAGES:
+        return True
     if fg in _LAUNCHER_PACKAGES:
         return True
     if fg in _SETTINGS_PACKAGES:
@@ -97,6 +199,8 @@ def _should_recover_from_foreign_app(package_name: str, fg: Optional[str]) -> bo
     if low.endswith(".settings") or ".settings." in low:
         return True
     if low.endswith(".launcher") or ".launcher." in low:
+        return True
+    if "intentresolver" in low or "chooser" in low:
         return True
     if "securitycenter" in low and ("miui" in low or "coloros" in low or "oplus" in low):
         return True
@@ -242,3 +346,38 @@ def _recover_foreground_if_needed(adb_bin: str, package_name: str) -> bool:
     logging.warning("Foreground package %s left target %s; re-launching task.", fg, package_name)
     _bring_target_foreground(adb_bin, package_name)
     return True
+
+
+def _attempt_foreground_recovery_before_abort(
+    adb_bin: str,
+    package_name: str,
+    *,
+    fg: Optional[str] = None,
+) -> bool:
+    """Try to return the target app to foreground when strict mismatch streak is building."""
+    fg_now = fg if fg is not None else _foreground_package(adb_bin)
+    if _foreground_acceptable(package_name, fg_now):
+        return False
+    if fg_now and _package_is_permission_dialog_surface(fg_now):
+        if _try_dismiss_permission_overlay(adb_bin, package_name):
+            return _foreground_acceptable(package_name, _foreground_package(adb_bin))
+    logging.warning(
+        "Foreground mismatch recovery attempt (fg=%s target=%s).",
+        fg_now or "<unknown>",
+        package_name,
+    )
+    _bring_target_foreground(adb_bin, package_name)
+    time.sleep(0.35)
+    fg_after = _foreground_package(adb_bin)
+    if _foreground_acceptable(package_name, fg_after):
+        return True
+    # dumpsys focus can lag; hierarchy still showing target widgets counts as recovered.
+    _, _, raw_xml = dump_clean_screen(adb_bin)
+    hier_pkg = _hierarchy_dominant_foreign_package(raw_xml, package_name)
+    if hier_pkg is None or hier_pkg == package_name:
+        logging.info(
+            "Foreground probe still foreign (%s) but hierarchy shows target; treating as recovered.",
+            fg_after or "<unknown>",
+        )
+        return True
+    return False

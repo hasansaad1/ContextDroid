@@ -15,13 +15,24 @@ from pathlib import Path
 from typing import IO, Any, Optional
 
 from .goals import (
+    _goal_needs_text_entry_field,
     _goal_opens_search_ui,
+    _goal_requests_back_navigation,
     _nav_goal_recently_satisfied,
     _screen_looks_like_search_entry_overlay,
     _search_launch_ids_on_screen,
     _search_open_goal_recently_satisfied,
+    _typing_goal_recently_satisfied,
 )
-from .screen import _bounds_center, _resource_id_owner_package, _screen_has_search_launch_affordance
+from .navigation import _build_text_entry_input_action
+from .device import _foreground_acceptable, _should_recover_from_foreign_app
+from .config import _BACK_GOAL_STUCK_LIMIT
+from .screen import (
+    _bounds_center,
+    _resource_id_owner_package,
+    _screen_has_edittext_for_typing,
+    _screen_has_search_launch_affordance,
+)
 def _route_tap_from_nav_targets(
     goal_route: dict[str, Any],
     nav_graph: dict[str, Any],
@@ -224,6 +235,147 @@ def _repeated_tap_without_screen_delta(
             return True
     return False
 
+def _goal_label_needles(goal: str) -> list[str]:
+    """Extract searchable label tokens from a tap/input goal string."""
+    g = (goal or "").strip().casefold()
+    if g.startswith("tap "):
+        label = g[4:].strip()
+    elif g.startswith("input "):
+        label = g[6:].strip()
+    else:
+        label = g
+    needles: list[str] = []
+    if label:
+        needles.append(label)
+    for token in re.findall(r"[a-z0-9]+", label.replace("_", " ")):
+        if len(token) >= 3:
+            needles.append(token)
+    out: list[str] = []
+    seen: set[str] = set()
+    for n in needles:
+        if n not in seen:
+            seen.add(n)
+            out.append(n)
+    return out
+
+
+def _route_tap_goal_label_fallback(
+    goal: str,
+    elements: list[dict[str, str]],
+    target_pkg: str,
+) -> dict[str, Any] | None:
+    """Tap a visible control whose label/resource tail overlaps the active goal text."""
+    needles = _goal_label_needles(goal)
+    if not needles:
+        return None
+    best: dict[str, Any] | None = None
+    best_score = 0
+    for e in elements:
+        rid = str(e.get("resource_id") or "").strip()
+        pref = _resource_id_owner_package(rid)
+        if pref and pref != target_pkg:
+            continue
+        rid_tail = rid.split("/")[-1].replace("_", " ") if ":id/" in rid else ""
+        blob = " ".join(
+            [
+                str(e.get("text") or ""),
+                str(e.get("content_desc") or ""),
+                rid_tail,
+            ]
+        ).casefold()
+        score = sum(1 for n in needles if n in blob)
+        if score <= best_score:
+            continue
+        center = _bounds_center(e.get("bounds", ""))
+        if center is None:
+            continue
+        best_score = score
+        best = {
+            "action_type": "tap",
+            "target_resource_id": rid,
+            "target_content_desc": str(e.get("content_desc") or ""),
+            "x": int(center[0]),
+            "y": int(center[1]),
+            "reason": "engine_fallback_tap_goal_label",
+        }
+    return best
+
+
+def _execute_engine_fallback_action(
+    goal_route: dict[str, Any] | None,
+    goal: str,
+    nav_graph: dict[str, Any],
+    app_state: dict[str, Any] | None,
+    elements: list[dict[str, str]],
+    target_pkg: str,
+    *,
+    goal_status: str = "feasible",
+    goal_blocked_turns: int = 0,
+    recent_actions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Deterministic execute step when nav routing cannot map the active goal."""
+    route = _route_controller_action_for_goal(
+        goal_route,
+        nav_graph,
+        app_state,
+        elements,
+        target_pkg,
+        recent_actions=recent_actions,
+    )
+    if route is not None:
+        return route
+    if goal_status == "satisfied":
+        return {"action_type": "advance_goal", "reason": "engine_fallback_goal_satisfied"}
+    if _goal_opens_search_ui(goal) or _goal_needs_text_entry_field(goal):
+        launch = _route_tap_search_launch(
+            elements,
+            target_pkg,
+            goal_route=goal_route,
+            nav_graph=nav_graph,
+        )
+        if launch is not None:
+            return launch
+        if _goal_needs_text_entry_field(goal) and _screen_has_edittext_for_typing(elements):
+            typed = _build_text_entry_input_action(
+                elements,
+                target_pkg=target_pkg,
+                reason="engine_fallback_text_entry",
+            )
+            if typed is not None:
+                return typed
+    tap = _route_tap_goal_label_fallback(goal, elements, target_pkg)
+    if tap is not None:
+        return tap
+    if goal_status == "blocked" or goal_blocked_turns >= 1:
+        return {"action_type": "advance_goal", "reason": "engine_fallback_skip_blocked"}
+    return {"action_type": "advance_goal", "reason": "engine_fallback_skip_unroutable"}
+
+
+def _repeated_back_without_screen_delta(
+    recent_actions: list[dict[str, Any]] | None,
+    *,
+    min_repeats: int = _BACK_GOAL_STUCK_LIMIT,
+) -> bool:
+    if not recent_actions:
+        return False
+    repeats = 0
+    for ev in reversed(recent_actions[-12:]):
+        pa = ev.get("parsed_action") or {}
+        if str(pa.get("action_type") or "") != "back":
+            continue
+        reason = str(pa.get("reason") or "")
+        if reason.startswith("engine_route_exit"):
+            continue
+        if not ev.get("action_success"):
+            continue
+        if ev.get("screen_hash") and ev.get("screen_hash") == ev.get("screen_hash_after"):
+            repeats += 1
+        else:
+            break
+        if repeats >= min_repeats:
+            return True
+    return False
+
 def _route_controller_action_for_goal(
     goal_route: dict[str, Any] | None,
     nav_graph: dict[str, Any],
@@ -288,6 +440,47 @@ def _route_controller_action_for_goal(
                         "reason": "engine_route_tap_search_visible_entry",
                     }
         return None
+    if _goal_needs_text_entry_field(goal):
+        if state.get("search_open"):
+            return {"action_type": "back", "reason": "engine_route_exit_search_overlay"}
+        if _typing_goal_recently_satisfied(recent_actions):
+            return {"action_type": "advance_goal", "reason": "engine_text_entry_recently_satisfied"}
+        if _screen_looks_like_search_entry_overlay(elements):
+            return {"action_type": "advance_goal", "reason": "engine_search_scanner_overlay_open"}
+        if _screen_has_edittext_for_typing(elements) and not bool(state.get("search_launch_visible")):
+            typed = _build_text_entry_input_action(
+                elements,
+                target_pkg=target_pkg,
+                reason="engine_route_text_entry",
+            )
+            if typed is not None:
+                return typed
+        if not _screen_has_edittext_for_typing(elements) or bool(state.get("search_launch_visible")):
+            launch = _route_tap_search_launch(
+                elements,
+                target_pkg,
+                goal_route=goal_route,
+                nav_graph=nav_graph,
+            )
+            if launch is not None:
+                return launch
+            if not bool(state.get("search_launch_visible")):
+                nav_surface = _route_navigate_to_search_surface(nav_graph, elements, target_pkg)
+                if nav_surface is not None:
+                    return nav_surface
+        return None
+    if _goal_requests_back_navigation(goal):
+        fg = str(state.get("foreground_package") or "")
+        if fg and _should_recover_from_foreign_app(target_pkg, fg):
+            return {"action_type": "advance_goal", "reason": "engine_back_goal_on_exit_surface"}
+        if fg and not _foreground_acceptable(target_pkg, fg):
+            return {"action_type": "advance_goal", "reason": "engine_back_goal_app_not_foreground"}
+        if _repeated_back_without_screen_delta(recent_actions):
+            return {"action_type": "advance_goal", "reason": "engine_back_goal_stuck"}
+        visible_nav = set(state.get("visible_nav_tokens") or [])
+        if len(visible_nav) >= 3 and not bool(state.get("search_open")):
+            return {"action_type": "advance_goal", "reason": "engine_back_goal_at_hub"}
+        return {"action_type": "back", "reason": "engine_route_back_goal"}
     if not nav_token:
         return None
     if str(state.get("active_nav_token") or "") == nav_token:

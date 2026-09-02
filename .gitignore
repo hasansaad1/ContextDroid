@@ -1,0 +1,76 @@
+# Local Android platform-tools installed by setup/install_adb_platform_tools.sh
+/tools/platform-tools/
+
+# Optional pilot APK downloads (see setup/install_adb_platform_tools.sh / pilot runs)
+/tools/pilot/
+
+# Host frida-server binary for post-wipe push (not committed; large ELF)
+/tools/frida-server*
+
+# ---------------------------------------------------------------------------
+# Malware corpus safety / sample containment (Phase 0)
+# ---------------------------------------------------------------------------
+*.apk
+*.apk.zip
+*.dex
+malware/
+corpus/malware/
+vault/
+*.sparsebundle
+/Volumes/
+*.avd
+androzoo_*.csv
+androzoo_*.csv.gz
+# Whole tree: latest.csv.gz naming does not match androzoo_*.csv.gz
+data/androzoo/
+
+# Keep the tracked manifest schema (and only that) under manifest/
+!manifest/
+!manifest/SCHEMA.md
+
+# A6 — large local trees that must never be committed
+data/apks/
+logs/
+!logs/ledger/
+!logs/ledger/.gitkeep
+!logs/ledger/SCHEMA.md
+experiment/*.zip
+# Large session captures inside unpacked bundle trees (README/manifest.csv at bundle root stay trackable)
+experiment/**/sessions/**/*_strace.log
+experiment/**/sessions/**/*_frida.jsonl
+experiment/**/sessions/**/*_frida.csv
+experiment/**/sessions/**/*_llm_actions.jsonl
+experiment/**/sessions/**/*_monkey.log
+
+# v2_extended export session traces (metadata.json + index files at export root stay trackable)
+export/**/sessions/**/events.jsonl
+export/**/sessions_failed_reference/**/events.jsonl
+
+# Large derived metric dumps at experiment root
+experiment/phase_aware_metrics.json
+experiment/reflection_target_analysis.json
+
+# Python / local noise
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.DS_Store
+pipeline.log
+
+# Network captures (none present today; fail-closed for future runs)
+*.pcap
+*.pcapng
+
+# Cleanup staging (Stage 4 moves; never publish archive contents)
+_archive/
+
+# AndroCT probe data (do not commit)
+probe/androct/data/
+probe/androct/out/

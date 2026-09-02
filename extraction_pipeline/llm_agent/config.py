@@ -82,7 +82,9 @@ _POST_ACTION_SETTLE_SEC = _env_float("CONTEXTDROID_LLM_POST_ACTION_SETTLE_SEC", 
 _AUDIT_SESSION = _env_truthy("CONTEXTDROID_LLM_AUDIT_SESSION")
 _AUDIT_POST_ACTION_SLEEP_SEC = _env_float("CONTEXTDROID_LLM_AUDIT_POST_ACTION_SLEEP_SEC", 0.35)
 _FOREGROUND_DUMPSYS_TIMEOUT_SEC = max(3.0, _env_float("CONTEXTDROID_LLM_FOREGROUND_DUMPSYS_TIMEOUT_SEC", 14.0))
-_UI_DUMP_TIMEOUT_SEC = max(5.0, _env_float("CONTEXTDROID_LLM_UI_DUMP_TIMEOUT_SEC", 25.0))
+_UI_DUMP_TIMEOUT_SEC = max(5.0, _env_float("CONTEXTDROID_LLM_UI_DUMP_TIMEOUT_SEC", 15.0))
+_ROOT_CAPTURE_DEADLINE_SEC = max(5.0, _env_float("CONTEXTDROID_ROOT_CAPTURE_DEADLINE_SEC", 30.0))
+_PRE_SETUP_MAX_SEC = max(30.0, _env_float("CONTEXTDROID_PRE_SETUP_MAX_SEC", 120.0))
 _OLLAMA_GENERATE_TIMEOUT_SEC = max(15.0, _env_float("CONTEXTDROID_OLLAMA_GENERATE_TIMEOUT_SEC", 60.0))
 
 
@@ -126,6 +128,20 @@ _USE_GOAL_PLAN = _env_truthy("CONTEXTDROID_LLM_GOAL_PLAN")
 # Disable with CONTEXTDROID_LLM_NAV_FIRST_PIPELINE=0|false|no (legacy single-phase UX path).
 _NAV_FIRST_PIPELINE = _env_flag("CONTEXTDROID_LLM_NAV_FIRST_PIPELINE", default=True)
 _EXPLORE_RATIO = max(0.1, min(0.85, _env_float("CONTEXTDROID_LLM_EXPLORE_RATIO", 0.30)))
+_EXPLORE_UNTIL_SEC_FLOOR = max(0.0, _env_float("CONTEXTDROID_LLM_EXPLORE_UNTIL_SEC_FLOOR", 0.0))
+_LLM_AGENT_SEED_RUNTIME = os.environ.get("CONTEXTDROID_LLM_AGENT_SEED", "").strip()
+
+
+def _ollama_generate_options() -> dict[str, Any]:
+    opts: dict[str, Any] = {"temperature": _LLM_TEMPERATURE_RUNTIME}
+    if _LLM_AGENT_SEED_RUNTIME:
+        try:
+            opts["seed"] = int(_LLM_AGENT_SEED_RUNTIME)
+        except ValueError:
+            pass
+    return opts
+
+
 _BATCH_ACTIONS_MAX = _env_int("CONTEXTDROID_LLM_BATCH_ACTIONS_MAX", 12, minimum=1)
 # Nav-first execute phase: one planner call per goal step by default (replan-friendly).
 _EXECUTE_UX_BATCH_MAX = _env_int("CONTEXTDROID_LLM_EXECUTE_UX_BATCH_MAX", 1, minimum=1)
@@ -156,8 +172,22 @@ _PRIMARY_UX_BLEND_AFTER_POST_NAV_MIN_SEC = _env_float(
 _PRIMARY_UX_BLEND_MIN_GOAL_INDEX_FOR_TIME = _env_int(
     "CONTEXTDROID_LLM_PRIMARY_UX_BLEND_MIN_GOAL_INDEX_FOR_TIME", 1, minimum=0
 )
+# When forward goal count is below this threshold, blend into primary UX sooner (sparse execute plan).
+_PRIMARY_UX_SPARSE_GOALS_THRESHOLD = _env_int(
+    "CONTEXTDROID_LLM_PRIMARY_UX_SPARSE_GOALS_THRESHOLD", 4, minimum=2
+)
+_PRIMARY_UX_BLEND_SPARSE_AFTER_GOAL_INDEX = _env_int(
+    "CONTEXTDROID_LLM_PRIMARY_UX_BLEND_SPARSE_AFTER_GOAL_INDEX", 1, minimum=0
+)
+_PRIMARY_UX_BLEND_SPARSE_TIME_RATIO = max(
+    0.1, min(1.0, _env_float("CONTEXTDROID_LLM_PRIMARY_UX_BLEND_SPARSE_TIME_RATIO", 0.55))
+)
 # Guarantee a minimum primary-UX window remains before we switch into primary mode.
 _PRIMARY_UX_MIN_WINDOW_SEC = _env_float("CONTEXTDROID_LLM_PRIMARY_UX_MIN_WINDOW_SEC", 60.0)
+# Consecutive engine back-goal steps with no screen change before auto-advance.
+_BACK_GOAL_STUCK_LIMIT = _env_int("CONTEXTDROID_LLM_BACK_GOAL_STUCK_LIMIT", 3, minimum=2)
+# Nav-first execute: when True, prefer deterministic engine routing over Ollama on execute.
+_EXECUTE_ENGINE_ONLY = _env_flag("CONTEXTDROID_LLM_EXECUTE_ENGINE_ONLY", default=False)
 
 _POST_EXPLORE_GOALS_MAX = _env_int("CONTEXTDROID_LLM_POST_EXPLORE_GOALS_MAX", 10, minimum=4)
 _POST_EXPLORE_GOALS_MIN_KEEP = _env_int(
@@ -181,7 +211,25 @@ _HANDOFF_EXPLORE_SETTLED_MIN_LANDMARK = _env_int(
 _EMPTY_EXECUTE_RECOVERY_ATTEMPTS = _env_int(
     "CONTEXTDROID_LLM_EMPTY_EXECUTE_RECOVERY_ATTEMPTS", 3, minimum=1
 )
+# After entering a nav hub/tab, spend this many explore turns on interior taps before tab cycling.
+_BFS_INTERIOR_EXPAND_BUDGET = _env_int(
+    "CONTEXTDROID_LLM_BFS_INTERIOR_EXPAND_BUDGET", 3, minimum=1
+)
+# Per-screen interior keys already tapped; deprioritize tab cycling until exhausted.
+_BFS_LAYER_EXPAND_BEFORE_CYCLE = _env_flag(
+    "CONTEXTDROID_LLM_BFS_LAYER_EXPAND_BEFORE_CYCLE", default=True
+)
+# After this many no-progress expand taps on one screen, allow tab cycling again.
+_BFS_EXPAND_STALL_LIMIT_PER_SCREEN = _env_int(
+    "CONTEXTDROID_LLM_BFS_EXPAND_STALL_LIMIT_PER_SCREEN", 4, minimum=2
+)
 PARTIAL_BAD_HANDOFF = "bad_handoff"
+PARTIAL_EMPTY_EXECUTE = "empty_execute_hierarchy"
+PARTIAL_EXPLORE_NON_NAVIGABLE = "explore_non_navigable"
+# Fail-fast when explore loops on empty hierarchy + back/wait recovery (see phase_aware_metrics K analysis).
+_EXPLORE_NON_NAVIGABLE_STREAK_LIMIT = _env_int(
+    "CONTEXTDROID_LLM_EXPLORE_NON_NAVIGABLE_STREAK_LIMIT", 10, minimum=4
+)
 
 _DEFAULT_PRIMARY_UX_TEXT = (
     "Do what most users open this app for: reach the main content surface (home/feed/list), then browse it with "
@@ -209,6 +257,8 @@ def _explore_until_seconds(duration_sec: int) -> float:
     reserve = max(45.0, min(reserve, float(duration_sec) - 35.0))
     explore_cap = float(duration_sec) - reserve
     merged = min(ratio_slice, explore_cap)
+    if _EXPLORE_UNTIL_SEC_FLOOR > 0:
+        merged = max(merged, min(_EXPLORE_UNTIL_SEC_FLOOR, explore_cap))
     return max(25.0, min(merged, float(duration_sec) - 30.0))
 
 
@@ -227,6 +277,24 @@ def _effective_primary_blend_after_sec(duration_sec: int) -> float:
     return max(
         _PRIMARY_UX_BLEND_AFTER_POST_NAV_MIN_SEC,
         float(duration_sec) * _PRIMARY_UX_BLEND_AFTER_POST_NAV_RATIO,
+    )
+
+
+def _effective_primary_blend_goal_index(forward_goal_count: int) -> int:
+    """Goal index at which structured execute may blend into primary UX."""
+    if forward_goal_count < _PRIMARY_UX_SPARSE_GOALS_THRESHOLD:
+        return _PRIMARY_UX_BLEND_SPARSE_AFTER_GOAL_INDEX
+    return _PRIMARY_UX_BLEND_AFTER_GOAL_INDEX
+
+
+def _primary_blend_after_sec_for_goals(duration_sec: int, forward_goal_count: int) -> float:
+    """Execute timer before primary-UX blend; shorter when goals are sparse."""
+    base = _effective_primary_blend_after_sec(duration_sec)
+    if forward_goal_count >= _PRIMARY_UX_SPARSE_GOALS_THRESHOLD:
+        return base
+    return max(
+        _PRIMARY_UX_BLEND_AFTER_POST_NAV_MIN_SEC * 0.5,
+        base * _PRIMARY_UX_BLEND_SPARSE_TIME_RATIO,
     )
 
 _ACTION_TYPES_PLANNER = frozenset({"tap", "input", "back", "wait", "advance_goal", "swipe"})
@@ -296,6 +364,15 @@ _BROWSER_PACKAGES = frozenset(
         "com.brave.browser",
         "com.microsoft.emmx",
         "org.mozilla.firefox",
+    }
+)
+
+# Share sheets / intent choosers that steal focus during OAuth or export flows.
+_FOREGROUND_CHOOSER_PACKAGES = frozenset(
+    {
+        "com.android.intentresolver",
+        "com.google.android.apps.docs",
+        "com.android.internal.app.ChooserActivity",
     }
 )
 

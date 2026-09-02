@@ -1,0 +1,3 @@
+version_id,created_at,parent_version,n_sessions,n_apps,n_faithful_validated,n_flailing_suspect,judge_version,description
+v1,2026-06-30T15:26:09Z,,129,129,79,46,judge_v1_75pct,Initial 129-session FAITHFUL+PARTIAL keep-set; flailing retained and tagged
+v2,2026-07-20T14:03:49Z,v1,594,200,168,223,faithfulness_v2_phase_aware,v2 reference tier 168/594 analyze-success (59 apps); 22-cat GRAPH meaningful Frida gate; v1 legacy separate

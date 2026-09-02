@@ -34,6 +34,7 @@ from .config import (
     _ACTION_TYPES_PLANNER,
     _LLM_TEMPERATURE_RUNTIME,
     _OLLAMA_GENERATE_TIMEOUT_SEC,
+    _ollama_generate_options,
 )
 
 def _ollama_generate(
@@ -44,7 +45,7 @@ def _ollama_generate(
             "model": model,
             "prompt": prompt,
             "stream": False,
-            "options": {"temperature": _LLM_TEMPERATURE_RUNTIME},
+            "options": _ollama_generate_options(),
         }
     ).encode("utf-8")
     req = urllib.request.Request(endpoint.rstrip("/") + "/api/generate", data=body, method="POST")
@@ -157,16 +158,43 @@ def _merge_adjacent_tap_input_pairs(acts: list[dict[str, Any]]) -> list[dict[str
         i += 1
     return out
 
+def _normalize_planner_action_fields(action: dict[str, Any]) -> dict[str, Any]:
+    """Map common LLM schema aliases onto the executor contract (target_resource_id, text)."""
+    out = dict(action)
+    rid = str(out.get("target_resource_id") or "").strip()
+    if not rid:
+        for alias in ("element_id", "resource_id", "field_id", "target_id", "view_id"):
+            val = str(out.get(alias) or "").strip()
+            if val:
+                out["target_resource_id"] = val
+                break
+    if not str(out.get("text") or "").strip():
+        for alias in ("input_text", "value", "query"):
+            val = str(out.get(alias) or "").strip()
+            if val:
+                out["text"] = val
+                break
+    return out
+
+
 def _extract_action_dicts_from_root(root: Any) -> list[dict[str, Any]]:
     if isinstance(root, dict):
         inner = root.get("actions")
         if isinstance(inner, list):
-            return [x for x in inner if isinstance(x, dict) and x.get("action_type")]
+            return [
+                _normalize_planner_action_fields(x)
+                for x in inner
+                if isinstance(x, dict) and x.get("action_type")
+            ]
         if root.get("action_type"):
-            return [root]
+            return [_normalize_planner_action_fields(root)]
         return []
     if isinstance(root, list):
-        return [x for x in root if isinstance(x, dict) and x.get("action_type")]
+        return [
+            _normalize_planner_action_fields(x)
+            for x in root
+            if isinstance(x, dict) and x.get("action_type")
+        ]
     return []
 
 def _planner_contract_failure(error: str, detail: str = "") -> list[dict[str, Any]]:

@@ -24,13 +24,15 @@ from .goals import (
     _NAV_TOKEN_ORDER,
 )
 from .planner import _ollama_generate_with_retries, _parse_ux_goals_from_plan
-from .screen import _bounds_center, _bounds_vertical_center_fraction, _hierarchy_max_bottom_y
+from .screen import _bounds_center, _bounds_vertical_center_fraction, _hierarchy_max_bottom_y, _resource_id_owner_package, _screen_has_edittext_for_typing
 from .config import (
     _NAV_DIGEST_MAX_SCREENS,
     _POST_EXPLORE_GOALS_MAX,
     _POST_EXPLORE_GOALS_MIN_KEEP,
 )
 
+# Step 2.2 scarcity gate — see docs/step2_anonymous_element_identity.md
+_ANONYMOUS_OTHER_SCARCITY_THRESHOLD = 0
 def _element_suggests_navigation_chrome(e: dict[str, str]) -> bool:
     cn = (e.get("class_name") or "").lower()
     rid = (e.get("resource_id") or "").lower()
@@ -155,6 +157,98 @@ def _action_is_back_like(action: dict[str, Any]) -> bool:
         or cd_norm in ("up", "navigate up")
     )
 
+
+_BFS_NAV_HUB_LABELS = frozenset(
+    ("categories", "latest", "nearby", "updates", "settings", "explore", "home")
+)
+
+_BFS_HUB_ENTRY_REASONS = frozenset(
+    {
+        "bfs_tab_frontier",
+        "bfs_nav_frontier",
+        "bfs_nav_visible_fallback",
+    }
+)
+
+
+def _bfs_action_looks_like_tab_hub(action: dict[str, Any]) -> bool:
+    """True for bottom-nav / nav_drawer targets — not primary CTAs like Sign in."""
+    rid = str(action.get("target_resource_id") or "").lower()
+    tail = rid.split("/")[-1] if rid else ""
+    cd = str(action.get("target_content_desc") or "").lower()
+    blob = f"{tail} {cd}"
+    if tail.startswith("nav_") or tail.startswith("navigation_"):
+        return True
+    if any(k in blob for k in _BFS_NAV_HUB_LABELS):
+        return True
+    if any(k in tail for k in ("bottom_nav", "navigation_bar", "tab_layout", "tablayout")):
+        return True
+    if "tab" in tail and tail not in ("sign_up", "sign_in", "signup", "signin"):
+        return True
+    return False
+
+
+def _bfs_screen_supports_layer_expansion(
+    tab_cands: list[dict[str, Any]],
+    nav_cands: list[dict[str, Any]],
+) -> bool:
+    """Layer-wise interior drilling only on true multi-destination hub screens."""
+    if len(tab_cands) >= 2:
+        return True
+    hub_like = sum(
+        1 for c in tab_cands + nav_cands if _bfs_action_looks_like_tab_hub(c)
+    )
+    return hub_like >= 2
+
+
+def _bfs_tap_triggers_interior_expand(action: dict[str, Any]) -> bool:
+    """True when a nav/tab tap should schedule interior depth expansion on the current layer."""
+    if str(action.get("action_type") or "") != "tap":
+        return False
+    if _action_is_search_like(action) or _action_is_back_like(action):
+        return False
+    rr = str(action.get("reason") or "")
+    if rr in _BFS_HUB_ENTRY_REASONS:
+        return True
+    return _bfs_action_looks_like_tab_hub(action)
+
+
+def _bfs_pick_untried_expand_candidate(
+    expand_cands: list[dict[str, Any]],
+    *,
+    target_pkg: str,
+    tried_keys: set[str],
+    reason: str = "bfs_expand_layer_depth",
+) -> dict[str, Any] | None:
+    """Next interior expand tap on this screen that has not been attempted yet."""
+    from .dialogs import _action_is_foreign_dialog_widget
+
+    for c in expand_cands:
+        if _action_is_foreign_dialog_widget(c, target_pkg):
+            continue
+        k = _nav_target_key(c)
+        if k in tried_keys:
+            continue
+        out = dict(c)
+        out["reason"] = reason
+        return out
+    return None
+
+
+def _bfs_has_untried_expand_on_screen(
+    expand_cands: list[dict[str, Any]],
+    *,
+    target_pkg: str,
+    tried_keys: set[str],
+) -> bool:
+    return (
+        _bfs_pick_untried_expand_candidate(
+            expand_cands, target_pkg=target_pkg, tried_keys=tried_keys
+        )
+        is not None
+    )
+
+
 def _is_likely_nav_candidate(e: dict[str, str], *, screen_bottom: int) -> bool:
     if _element_suggests_navigation_chrome(e):
         return True
@@ -171,8 +265,103 @@ def _is_likely_nav_candidate(e: dict[str, str], *, screen_bottom: int) -> bool:
     # Bottom-located labeled controls are often nav tabs.
     return bool(label) and frac >= 0.72
 
-def _build_bfs_candidates(elements: list[dict[str, str]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Return (nav_candidates, other_candidates) as tap actions with deterministic order."""
+def _is_text_entry_element(e: dict[str, str]) -> bool:
+    """Focusable text inputs — routed to input/focus tier, not plain-tap other (Step 2.3)."""
+    cls = str(e.get("class_name") or "").lower()
+    return any(
+        token in cls
+        for token in (
+            "edittext",
+            "autocompletetextview",
+            "multiautocompletetextview",
+            "searchauto",
+        )
+    )
+
+
+def _element_passes_bfs_interactive_gate(e: dict[str, str]) -> bool:
+    """Interactive gate aligned with _build_bfs_candidates (requires propagated clickable)."""
+    cls = str(e.get("class_name") or "").lower()
+    clickable = str(e.get("clickable") or "").lower() in ("true", "1")
+    return clickable or "button" in cls or "tab" in cls
+
+
+def _default_probe_input_text() -> str:
+    q = os.environ.get("CONTEXTDROID_LLM_INPUT_FALLBACK_QUERY", "demo").strip()
+    return q or "demo"
+
+
+def _build_text_entry_input_action(
+    elements: list[dict[str, str]],
+    *,
+    target_pkg: str = "",
+    reason: str = "engine_route_text_entry",
+) -> dict[str, Any] | None:
+    """Build input action for the first visible in-app EditText (Step 2.3 → Step 4)."""
+    if not _screen_has_edittext_for_typing(elements):
+        return None
+    for e in elements:
+        if not _is_text_entry_element(e):
+            continue
+        rid = str(e.get("resource_id") or "").strip()
+        pref = _resource_id_owner_package(rid)
+        if pref and pref != target_pkg:
+            continue
+        center = _bounds_center(e.get("bounds", ""))
+        if center is None:
+            continue
+        return {
+            "action_type": "input",
+            "target_resource_id": rid,
+            "target_content_desc": str(e.get("content_desc") or ""),
+            "x": int(center[0]),
+            "y": int(center[1]),
+            "text": _default_probe_input_text(),
+            "reason": reason,
+        }
+    return None
+
+
+def _text_entry_probe_field_key(screen_hash: str, action: dict[str, Any]) -> str:
+    """Identity for anonymous text fields: (screen_hash, bounds) or rid when present."""
+    rid = str(action.get("target_resource_id") or "").strip()
+    if rid:
+        return f"{screen_hash}|rid:{rid}"
+    try:
+        x = int(action["x"])
+        y = int(action["y"])
+    except (KeyError, TypeError, ValueError):
+        return f"{screen_hash}|unknown"
+    return f"{screen_hash}|xy:{x}:{y}"
+
+
+def _pick_text_entry_explore_action(
+    elements: list[dict[str, str]],
+    target_pkg: str,
+    *,
+    screen_hash: str = "",
+    probed_keys: set[str] | None = None,
+) -> dict[str, Any] | None:
+    """Explore input/focus tier: type when EditText is the only actionable affordance (Step 2.3 + 4).
+
+    Each (screen_hash, field) pair is probed at most once; repeat probes are a type-loop.
+    """
+    act = _build_text_entry_input_action(
+        elements,
+        target_pkg=target_pkg,
+        reason="bfs_text_entry_probe",
+    )
+    if act is None:
+        return None
+    if screen_hash and probed_keys is not None:
+        key = _text_entry_probe_field_key(screen_hash, act)
+        if key in probed_keys:
+            return None
+    return act
+
+
+def _build_bfs_candidates_legacy(elements: list[dict[str, str]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Pre-Step-2 candidate builder (labeled-only other bucket; no anonymous admission)."""
     bottom = _hierarchy_max_bottom_y(elements)
     nav: list[dict[str, Any]] = []
     other: list[dict[str, Any]] = []
@@ -197,10 +386,71 @@ def _build_bfs_candidates(elements: list[dict[str, str]]) -> tuple[list[dict[str
         }
         if _is_likely_nav_candidate(e, screen_bottom=bottom):
             nav.append(act)
+        elif text or cd or rid:
+            other.append(act)
+    nav.sort(key=lambda a: _nav_priority_legacy(a))
+    other.sort(key=_action_signature_for_candidate)
+    return nav, other
+
+
+def _nav_priority_legacy(a: dict[str, Any]) -> tuple[int, str]:
+    rid = str(a.get("target_resource_id") or "").lower()
+    cd = str(a.get("target_content_desc") or "").lower()
+    blob = f"{rid} {cd}"
+    if any(k in blob for k in ("categories", "latest", "nearby", "updates", "settings", "tab", "bottom_nav")):
+        pri = 0
+    elif any(k in blob for k in ("fab_search", "search")):
+        pri = 3
+    else:
+        pri = 1
+    return (pri, _action_signature_for_candidate(a))
+
+
+def _build_bfs_candidates(elements: list[dict[str, str]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Return (nav_candidates, other_candidates) as tap actions with deterministic order.
+
+    Anonymous clickables (no rid/cd/text) are admitted to ``other`` only when labeled
+    candidate buckets (nav, tab, labeled-other) are at or below
+    ``_ANONYMOUS_OTHER_SCARCITY_THRESHOLD`` — see
+    ``docs/step2_anonymous_element_identity.md``. EditText-like widgets are excluded.
+    """
+    if os.environ.get("CONTEXTDROID_PRE_STEP2", "").strip() == "1":
+        return _build_bfs_candidates_legacy(elements)
+    bottom = _hierarchy_max_bottom_y(elements)
+    nav: list[dict[str, Any]] = []
+    labeled_other: list[dict[str, Any]] = []
+    anonymous_pending: list[dict[str, Any]] = []
+    for e in elements:
+        if _is_text_entry_element(e):
+            continue
+        center = _bounds_center(e.get("bounds", ""))
+        if center is None:
+            continue
+        text = str(e.get("text") or "").strip()
+        cd = str(e.get("content_desc") or "").strip()
+        rid = str(e.get("resource_id") or "").strip()
+        if not _element_passes_bfs_interactive_gate(e):
+            continue
+        act = {
+            "action_type": "tap",
+            "target_resource_id": rid,
+            "target_content_desc": cd,
+            "x": int(center[0]),
+            "y": int(center[1]),
+            "reason": "bfs_navigation",
+        }
+        if _is_likely_nav_candidate(e, screen_bottom=bottom):
+            nav.append(act)
+        elif text or cd or rid:
+            labeled_other.append(act)
         else:
-            # Prefer labeled controls and visible list/detail entries.
-            if text or cd or rid:
-                other.append(act)
+            anonymous_pending.append(act)
+
+    tab_cands = _build_tab_targets(elements)
+    labeled_total = len(nav) + len(labeled_other) + len(tab_cands)
+    other = list(labeled_other)
+    if labeled_total <= _ANONYMOUS_OTHER_SCARCITY_THRESHOLD:
+        other.extend(anonymous_pending)
     def _nav_priority(a: dict[str, Any]) -> tuple[int, str]:
         rid = str(a.get("target_resource_id") or "").lower()
         cd = str(a.get("target_content_desc") or "").lower()
@@ -465,9 +715,60 @@ def _format_navigation_digest(digest: dict[str, str]) -> str:
     lines = [f"{h[:16]}… | {digest[h]}" for h in sorted(digest.keys())]
     return "\n".join(lines[-min(len(lines), _NAV_DIGEST_MAX_SCREENS) :])
 
+
+def _tap_goals_from_nav_graph(nav_graph: dict[str, Any] | None, *, max_n: int = 8) -> list[str]:
+    """Supplemental tap goals from semantic nav targets recorded during explore."""
+    if not nav_graph:
+        return []
+    targets = nav_graph.get("targets") or {}
+    scored: list[tuple[tuple[int, int, str], str]] = []
+    for key, rec_any in targets.items():
+        if not isinstance(rec_any, dict):
+            continue
+        rec = rec_any
+        rid = str(rec.get("target_resource_id") or "").strip()
+        cd = str(rec.get("target_content_desc") or "").strip()
+        rid_tail = rid.split("/")[-1] if rid else ""
+        label = cd or rid_tail.replace("_", " ").strip()
+        if not label or label.casefold() in ("view", "none"):
+            continue
+        if rid_tail.casefold() in ("touch_outside", "view", "nav_view"):
+            continue
+        token = str(rec.get("semantic_token") or "")
+        successes = int(rec.get("successes") or 0)
+        if rid_tail.startswith("nav_"):
+            goal = f"Tap {rid_tail[4:].replace('_', ' ').title()}"
+        elif rid_tail.startswith("navigation_"):
+            goal = f"Tap {rid_tail[len('navigation_'):].replace('_', ' ').title()}"
+        elif label:
+            goal = f"Tap {label}"
+        else:
+            continue
+        pri = 0 if token else 1
+        scored.append(((pri, -successes, key), goal))
+    scored.sort(key=lambda item: item[0])
+    out: list[str] = []
+    seen: set[str] = set()
+    for _, goal in scored:
+        k = goal.casefold()
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(goal)
+        if len(out) >= max_n:
+            break
+    return out
+
+
 def _plan_execution_goals_from_digest(
-    app_context: dict[str, Any], screen_map_text: str, model: str, endpoint: str
+    app_context: dict[str, Any],
+    screen_map_text: str,
+    model: str,
+    endpoint: str,
+    *,
+    nav_graph: dict[str, Any] | None = None,
 ) -> list[str]:
+    nav_supplement = _tap_goals_from_nav_graph(nav_graph)
     prompt = (
         "Black-box Android QA planner. A runner already NAVIGATED and collected distinct screens.\n"
         "Below is a compact SCREEN MAP (hash prefix → UI hints). The app is in the foreground.\n"
@@ -492,7 +793,7 @@ def _plan_execution_goals_from_digest(
         raw = _ollama_generate_with_retries(prompt, model, endpoint)
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
         logging.warning("Post-explore goal planning failed; using digest-only goals.")
-        return _finalize_post_explore_goals([], screen_map_text)
+        return _finalize_post_explore_goals([], screen_map_text, supplemental_goals=nav_supplement)
     goals = _parse_ux_goals_from_plan(raw)
     if not goals:
         # Recovery pass: ask the model to transform its own non-JSON response into strict JSON.
@@ -546,8 +847,8 @@ def _plan_execution_goals_from_digest(
             "Could not parse post-explore goals; digest-only template. planner_preview=%r",
             (raw[:900] + "…") if len(raw) > 900 else raw,
         )
-        return _finalize_post_explore_goals([], screen_map_text)
-    finalized = _finalize_post_explore_goals(goals, screen_map_text)
+        return _finalize_post_explore_goals([], screen_map_text, supplemental_goals=nav_supplement)
+    finalized = _finalize_post_explore_goals(goals, screen_map_text, supplemental_goals=nav_supplement)
     if len(finalized) < _POST_EXPLORE_GOALS_MIN_KEEP and goals:
         # Spend one extra planner turn to recover concrete UI-tied goals if strict gate dropped too much.
         extra_strict_prompt = (
@@ -564,7 +865,9 @@ def _plan_execution_goals_from_digest(
             extra_raw = _ollama_generate_with_retries(extra_strict_prompt, model, endpoint)
             extra_goals = _parse_ux_goals_from_plan(extra_raw)
             if extra_goals:
-                extra_final = _finalize_post_explore_goals(extra_goals, screen_map_text)
+                extra_final = _finalize_post_explore_goals(
+                    extra_goals, screen_map_text, supplemental_goals=nav_supplement
+                )
                 if len(extra_final) >= len(finalized):
                     finalized = extra_final
                     logging.info(

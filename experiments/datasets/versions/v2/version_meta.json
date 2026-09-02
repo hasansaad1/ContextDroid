@@ -1,0 +1,139 @@
+{
+  "version_id": "v2",
+  "created_at": "2026-07-20T14:03:49Z",
+  "parent_version": "v1",
+  "description": "v2 bulk_llm_benign_v2 reference tier (168 sessions, 59 apps); 426 volume-tier analyze-success sessions",
+  "source_run": "bulk_llm_benign_v2",
+  "hook_version": 3,
+  "judge_version": "faithfulness_v2_phase_aware",
+  "judge_validation": {
+    "sessions": 20,
+    "exact_agreement_pct": 80.0,
+    "collapsed_agreement_pct": 100.0,
+    "source": "experiment/faithfulness_human_validation.json"
+  },
+  "graph_category_universe": {
+    "size": 22,
+    "excluded_from_hooks": [
+      "lifecycle",
+      "navigation",
+      "reflection"
+    ],
+    "categories": [
+      "accounts",
+      "audio",
+      "camera",
+      "clipboard",
+      "content_access",
+      "crypto",
+      "database",
+      "device_info",
+      "dynamic_code_loading",
+      "file_io",
+      "ipc_intents",
+      "location",
+      "media",
+      "native_code",
+      "network",
+      "notifications",
+      "package_manager",
+      "process",
+      "sms",
+      "storage",
+      "telephony",
+      "webview"
+    ]
+  },
+  "reference_gate_verbatim": "A session enters the REFERENCE tier iff ALL of: (1) analyze_status=success; (2) llm_simulation_status=success; (3) faithfulness_verdict in {FAITHFUL, PARTIAL} (judge faithfulness_v2_phase_aware); (4) C0 explore engagement pass (>=3 named effective functional explore taps OR >=2 new functional explore screen hashes); (5) meaningful_frida_22cat > 0 over GRAPH_CATEGORY_UNIVERSE (22 hook categories excluding lifecycle, reflection, navigation; framework APIs hook_loaded/Method.invoke excluded); (6) NOT flailing (quality_rules.detect_suspect_flailing); (7) NOT login_required / auth_gated (llm_simulation_status != failed:skip:login_required); (8) NOT tagged NETWORK_DEGRADED (best-effort digest-keyword detection via DEGRADED_RE on agent action reasons). Everything else analyze-success -> VOLUME tier.",
+  "counts": {
+    "analyze_success_sessions": 594,
+    "reference_tier_sessions": 168,
+    "reference_tier_apps": 59,
+    "volume_tier_sessions": 426,
+    "meaningful_frida_25hook_gt0": 492,
+    "meaningful_frida_22cat_gt0": 492,
+    "reference_meaningful_frida_22cat_ge6": 144,
+    "by_tier": {
+      "reference": 168,
+      "volume": 426
+    },
+    "by_tag": {
+      "FAITHFUL_VALIDATED": 500,
+      "FLAILING_SUSPECT": 223,
+      "ZERO_MEANINGFUL_FRIDA": 102,
+      "LAUNCHER": 27,
+      "CANVAS_OR_GAME": 6,
+      "EXPLORE_NON_NAVIGABLE": 42,
+      "AUTH_GATED": 12,
+      "UI_MOTION_NO_SIGNAL": 61
+    },
+    "by_faithfulness_verdict_reference": {
+      "FAITHFUL": 162,
+      "PARTIAL": 6
+    },
+    "by_app_class_reference": {
+      "other": 147,
+      "network_tool": 12,
+      "ime": 3,
+      "comm": 3,
+      "media": 3
+    },
+    "reference_graph_category_coverage_pct": {
+      "accounts": 0.0,
+      "audio": 3.6,
+      "camera": 1.2,
+      "clipboard": 0.0,
+      "content_access": 5.4,
+      "crypto": 19.6,
+      "database": 15.5,
+      "device_info": 0.0,
+      "dynamic_code_loading": 0.0,
+      "file_io": 70.8,
+      "ipc_intents": 30.4,
+      "location": 1.8,
+      "media": 0.0,
+      "native_code": 14.3,
+      "network": 18.5,
+      "notifications": 3.6,
+      "package_manager": 1.8,
+      "process": 1.8,
+      "sms": 0.0,
+      "storage": 72.6,
+      "telephony": 0.0,
+      "webview": 8.9
+    },
+    "reference_graph_category_dead": [
+      "accounts",
+      "clipboard",
+      "device_info",
+      "dynamic_code_loading",
+      "media",
+      "sms",
+      "telephony"
+    ],
+    "fallout_from_reference_among_analyze_success": {
+      "any_volume_or_fail": 426,
+      "sim_not_success": 385,
+      "flailing": 223,
+      "zero_meaningful_frida_22cat": 102,
+      "faith_FAILED": 94,
+      "explore_fail": 83,
+      "auth_gated": 12
+    }
+  },
+  "known_limitations": [
+    "Separate generation from v1 (129 legacy, hook v2 / judge_v1_75pct); never pool in evaluation.",
+    "NETWORK_DEGRADED gate is best-effort via DEGRADED_RE keyword hits on agent action reasons; corpus-wide network-dependency tagging (remediation Step 9.11) is not implemented.",
+    "NETWORK_DEGRADED caught 0 sessions (0 distinct apps).",
+    "Varied-seed sessions often near-duplicate identical pairs (low explore variance).",
+    "telephony and native_code categories remain near-dead even in reference tier.",
+    "v1 lives at experiments/datasets/versions/v1/ and is untouched."
+  ],
+  "reproduction": {
+    "command": "python3 experiments/datasets/curate_v2_reference.py (curation-only; reads logs/bulk_llm_benign_v2/dataset_index.csv + session artifacts)",
+    "inputs": {
+      "dataset_index": "logs/bulk_llm_benign_v2/dataset_index.csv",
+      "session_artifacts": "logs/bulk_llm_benign_v2"
+    }
+  }
+}

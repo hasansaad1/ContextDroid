@@ -1,0 +1,2049 @@
+{
+  "apk_count": 284,
+  "apk_size_bytes": {
+    "max": 181147653.0,
+    "mean": 17318939.16549296,
+    "median": 4999506.0,
+    "min": 21970.0,
+    "q1": 2411875.75,
+    "q3": 19332063.0,
+    "stdev": 28261744.519558206
+  },
+  "dex_date": {
+    "filtered_max": "2026-02-16",
+    "filtered_min": "2011-06-17",
+    "note": "AndroZoo warns dex_date is often 1980/1981 for Play apps; benign profile uses ZIP entry dates from local APKs.",
+    "raw_max": "2026-02-16",
+    "raw_min": "1980-00-00",
+    "sentinel_1980_1981_count": 259,
+    "year_histogram": {
+      "1980": 37,
+      "1981": 222,
+      "2011": 1,
+      "2012": 2,
+      "2013": 4,
+      "2014": 4,
+      "2015": 6,
+      "2016": 3,
+      "2017": 3,
+      "2018": 1,
+      "2026": 1
+    }
+  },
+  "dex_size_bytes": {
+    "max": 32263292.0,
+    "mean": 5507930.422535211,
+    "median": 3531210.0,
+    "min": 4816.0,
+    "q1": 1586696.0,
+    "q3": 8130517.0,
+    "stdev": 6428925.364601817
+  },
+  "generated_at_utc": "2026-07-28T07:49:35Z",
+  "permission_count": {
+    "max": 50.0,
+    "mean": 7.323943661971831,
+    "median": 5.0,
+    "min": 0.0,
+    "q1": 2.0,
+    "q3": 10.0,
+    "stdev": 7.566186171376212
+  },
+  "records": [
+    {
+      "apk": "An.stop_10.apk",
+      "apk_size": 66218,
+      "dex_date": "2012-08-10",
+      "dex_size": 59996,
+      "permission_count": 2
+    },
+    {
+      "apk": "InfinityLoop1309.NewPipeEnhanced_109704.apk",
+      "apk_size": 30882826,
+      "dex_date": "1981-01-01",
+      "dex_size": 9611732,
+      "permission_count": 8
+    },
+    {
+      "apk": "S.N.A.K.E_1000001.apk",
+      "apk_size": 102314,
+      "dex_date": "1981-01-01",
+      "dex_size": 5404,
+      "permission_count": 0
+    },
+    {
+      "apk": "a2dp.Vol_169.apk",
+      "apk_size": 2748737,
+      "dex_date": "1980-01-01",
+      "dex_size": 3206664,
+      "permission_count": 17
+    },
+    {
+      "apk": "ac.mdiq.podcini.X_256.apk",
+      "apk_size": 64616479,
+      "dex_date": "1981-01-01",
+      "dex_size": 11638376,
+      "permission_count": 16
+    },
+    {
+      "apk": "ac.robinson.mediaphone_65.apk",
+      "apk_size": 2245332,
+      "dex_date": "1981-01-01",
+      "dex_size": 1945192,
+      "permission_count": 8
+    },
+    {
+      "apk": "acab.naiveha.subrosa_7.apk",
+      "apk_size": 4219131,
+      "dex_date": "1981-01-01",
+      "dex_size": 1921196,
+      "permission_count": 4
+    },
+    {
+      "apk": "acr.browser.lightning_101.apk",
+      "apk_size": 3424126,
+      "dex_date": "1980-01-01",
+      "dex_size": 2364580,
+      "permission_count": 9
+    },
+    {
+      "apk": "ademar.bitac_8.apk",
+      "apk_size": 3047286,
+      "dex_date": "1981-01-01",
+      "dex_size": 4030340,
+      "permission_count": 5
+    },
+    {
+      "apk": "ademar.textlauncher_10.apk",
+      "apk_size": 25503,
+      "dex_date": "1981-01-01",
+      "dex_size": 8508,
+      "permission_count": 1
+    },
+    {
+      "apk": "agersant.polaris_415293155.apk",
+      "apk_size": 56412018,
+      "dex_date": "1981-01-01",
+      "dex_size": 2235204,
+      "permission_count": 7
+    },
+    {
+      "apk": "agrigolo.chubbyclick_25.apk",
+      "apk_size": 2279058,
+      "dex_date": "1980-00-00",
+      "dex_size": 3539256,
+      "permission_count": 0
+    },
+    {
+      "apk": "agrigolo.opendrummer_3.apk",
+      "apk_size": 6671757,
+      "dex_date": "1981-01-01",
+      "dex_size": 9498300,
+      "permission_count": 2
+    },
+    {
+      "apk": "ai.susi_16.apk",
+      "apk_size": 14344225,
+      "dex_date": "1980-01-01",
+      "dex_size": 7263212,
+      "permission_count": 10
+    },
+    {
+      "apk": "akk.astro.droid.moonphase_2.apk",
+      "apk_size": 185892,
+      "dex_date": "2017-10-16",
+      "dex_size": 9352,
+      "permission_count": 0
+    },
+    {
+      "apk": "allen.town.focus.mastodon_1630.apk",
+      "apk_size": 14496691,
+      "dex_date": "1981-01-01",
+      "dex_size": 7205656,
+      "permission_count": 33
+    },
+    {
+      "apk": "allen.town.focus.podcast_70.apk",
+      "apk_size": 11842880,
+      "dex_date": "1981-01-01",
+      "dex_size": 2253112,
+      "permission_count": 19
+    },
+    {
+      "apk": "alt.nainapps.aer_1735160000.apk",
+      "apk_size": 1371820,
+      "dex_date": "1981-01-01",
+      "dex_size": 1594616,
+      "permission_count": 6
+    },
+    {
+      "apk": "alt.nainapps.sharepaste.fdroid_1734722268.apk",
+      "apk_size": 10227615,
+      "dex_date": "1981-01-01",
+      "dex_size": 3311024,
+      "permission_count": 3
+    },
+    {
+      "apk": "amirz.dngprocessor_5.apk",
+      "apk_size": 249134,
+      "dex_date": "1980-01-01",
+      "dex_size": 156880,
+      "permission_count": 3
+    },
+    {
+      "apk": "amirz.rootless.nexuslauncher_30911.apk",
+      "apk_size": 1693305,
+      "dex_date": "1980-01-01",
+      "dex_size": 1233040,
+      "permission_count": 14
+    },
+    {
+      "apk": "androdns.android.leetdreams.ch.androdns_27.apk",
+      "apk_size": 4768771,
+      "dex_date": "1981-01-01",
+      "dex_size": 8892848,
+      "permission_count": 2
+    },
+    {
+      "apk": "android.jonas.fakestandby_14.apk",
+      "apk_size": 1798099,
+      "dex_date": "1981-01-01",
+      "dex_size": 1728768,
+      "permission_count": 5
+    },
+    {
+      "apk": "anonvpn.anon_next.android_22.apk",
+      "apk_size": 6971751,
+      "dex_date": "1981-01-01",
+      "dex_size": 9165772,
+      "permission_count": 5
+    },
+    {
+      "apk": "anupam.acrylic_19.apk",
+      "apk_size": 542178,
+      "dex_date": "1981-01-01",
+      "dex_size": 52688,
+      "permission_count": 1
+    },
+    {
+      "apk": "app.alextran.immich_3046.apk",
+      "apk_size": 178528364,
+      "dex_date": "1981-01-01",
+      "dex_size": 7311920,
+      "permission_count": 26
+    },
+    {
+      "apk": "app.cclauncher_1290.apk",
+      "apk_size": 3341593,
+      "dex_date": "1981-01-01",
+      "dex_size": 4667484,
+      "permission_count": 13
+    },
+    {
+      "apk": "app.clauncher_430.apk",
+      "apk_size": 1788998,
+      "dex_date": "1981-01-01",
+      "dex_size": 1795824,
+      "permission_count": 12
+    },
+    {
+      "apk": "app.comaps.fdroid_26042319.apk",
+      "apk_size": 65384307,
+      "dex_date": "1981-01-01",
+      "dex_size": 5567460,
+      "permission_count": 16
+    },
+    {
+      "apk": "app.crescentcash.src_120.apk",
+      "apk_size": 9839433,
+      "dex_date": "1980-01-01",
+      "dex_size": 7611680,
+      "permission_count": 7
+    },
+    {
+      "apk": "app.crossword.yourealwaysbe.forkyz_8000000.apk",
+      "apk_size": 4704345,
+      "dex_date": "1981-01-01",
+      "dex_size": 5975456,
+      "permission_count": 10
+    },
+    {
+      "apk": "app.crossword.yourealwaysbe.forkyzscanner_8.apk",
+      "apk_size": 68956023,
+      "dex_date": "1981-01-01",
+      "dex_size": 3335496,
+      "permission_count": 4
+    },
+    {
+      "apk": "app.dumdum_14.apk",
+      "apk_size": 41713691,
+      "dex_date": "1981-01-01",
+      "dex_size": 4504016,
+      "permission_count": 20
+    },
+    {
+      "apk": "app.easy.launcher_33.apk",
+      "apk_size": 19364553,
+      "dex_date": "1981-01-01",
+      "dex_size": 3065368,
+      "permission_count": 20
+    },
+    {
+      "apk": "app.eduroam.geteduroam_2683.apk",
+      "apk_size": 5178828,
+      "dex_date": "1981-01-01",
+      "dex_size": 5725316,
+      "permission_count": 10
+    },
+    {
+      "apk": "app.fedilab.castlab_11.apk",
+      "apk_size": 54013725,
+      "dex_date": "1981-01-01",
+      "dex_size": 9537804,
+      "permission_count": 37
+    },
+    {
+      "apk": "app.fedilab.fediplan_7.apk",
+      "apk_size": 39315363,
+      "dex_date": "1981-01-01",
+      "dex_size": 11583156,
+      "permission_count": 7
+    },
+    {
+      "apk": "app.fedilab.mobilizon_3.apk",
+      "apk_size": 3037446,
+      "dex_date": "1981-01-01",
+      "dex_size": 4760924,
+      "permission_count": 5
+    },
+    {
+      "apk": "app.fedilab.nitterizeme_33.apk",
+      "apk_size": 3714928,
+      "dex_date": "1981-01-01",
+      "dex_size": 4518896,
+      "permission_count": 2
+    },
+    {
+      "apk": "app.fedilab.nitterizemelite_33.apk",
+      "apk_size": 3714928,
+      "dex_date": "1981-01-01",
+      "dex_size": 4519136,
+      "permission_count": 2
+    },
+    {
+      "apk": "app.fedilab.openmaps_13.apk",
+      "apk_size": 3828282,
+      "dex_date": "1981-01-01",
+      "dex_size": 6017324,
+      "permission_count": 5
+    },
+    {
+      "apk": "app.flicky_890.apk",
+      "apk_size": 4053162,
+      "dex_date": "1981-01-01",
+      "dex_size": 5638704,
+      "permission_count": 14
+    },
+    {
+      "apk": "app.fluffy_740.apk",
+      "apk_size": 6390392,
+      "dex_date": "1981-01-01",
+      "dex_size": 6526016,
+      "permission_count": 13
+    },
+    {
+      "apk": "app.govroam.getgovroam_2683.apk",
+      "apk_size": 5158633,
+      "dex_date": "1981-01-01",
+      "dex_size": 5724780,
+      "permission_count": 10
+    },
+    {
+      "apk": "app.halma_15.apk",
+      "apk_size": 3849844,
+      "dex_date": "1981-01-01",
+      "dex_size": 6932336,
+      "permission_count": 2
+    },
+    {
+      "apk": "app.hkTransport_106.apk",
+      "apk_size": 8103798,
+      "dex_date": "1981-01-01",
+      "dex_size": 6126296,
+      "permission_count": 6
+    },
+    {
+      "apk": "app.hypostats_58.apk",
+      "apk_size": 5572929,
+      "dex_date": "1981-01-01",
+      "dex_size": 8888848,
+      "permission_count": 2
+    },
+    {
+      "apk": "app.intra_72.apk",
+      "apk_size": 13340409,
+      "dex_date": "1981-01-01",
+      "dex_size": 1653276,
+      "permission_count": 8
+    },
+    {
+      "apk": "app.ladefuchs.android_365.apk",
+      "apk_size": 89680040,
+      "dex_date": "1981-01-01",
+      "dex_size": 6543004,
+      "permission_count": 9
+    },
+    {
+      "apk": "app.lonecloud.prism_10202.apk",
+      "apk_size": 3509105,
+      "dex_date": "1981-01-01",
+      "dex_size": 2957744,
+      "permission_count": 11
+    },
+    {
+      "apk": "app.michaelwuensch.bitbanana_78.apk",
+      "apk_size": 64451070,
+      "dex_date": "1981-01-01",
+      "dex_size": 9234676,
+      "permission_count": 14
+    },
+    {
+      "apk": "app.mlauncher_1110303.apk",
+      "apk_size": 7783577,
+      "dex_date": "1981-01-01",
+      "dex_size": 4396900,
+      "permission_count": 23
+    },
+    {
+      "apk": "app.motionui.android_100.apk",
+      "apk_size": 11905532,
+      "dex_date": "1981-01-01",
+      "dex_size": 8545076,
+      "permission_count": 8
+    },
+    {
+      "apk": "app.myzel394.alibi_16.apk",
+      "apk_size": 124911021,
+      "dex_date": "1981-01-01",
+      "dex_size": 4049052,
+      "permission_count": 14
+    },
+    {
+      "apk": "app.notesr_60.apk",
+      "apk_size": 37094421,
+      "dex_date": "1981-01-01",
+      "dex_size": 8851676,
+      "permission_count": 6
+    },
+    {
+      "apk": "app.olauncher_105.apk",
+      "apk_size": 2304587,
+      "dex_date": "1981-01-01",
+      "dex_size": 1824024,
+      "permission_count": 14
+    },
+    {
+      "apk": "app.olaunchercf_34.apk",
+      "apk_size": 2901004,
+      "dex_date": "1981-01-01",
+      "dex_size": 3196532,
+      "permission_count": 11
+    },
+    {
+      "apk": "app.onloc.android_121.apk",
+      "apk_size": 50143545,
+      "dex_date": "1981-01-01",
+      "dex_size": 5060708,
+      "permission_count": 21
+    },
+    {
+      "apk": "app.organicmaps_26040708.apk",
+      "apk_size": 71446367,
+      "dex_date": "1981-01-01",
+      "dex_size": 5476880,
+      "permission_count": 17
+    },
+    {
+      "apk": "app.pachli_47.apk",
+      "apk_size": 31916344,
+      "dex_date": "1981-01-01",
+      "dex_size": 10369464,
+      "permission_count": 14
+    },
+    {
+      "apk": "app.panoramax_63.apk",
+      "apk_size": 26924544,
+      "dex_date": "1981-01-01",
+      "dex_size": 1421580,
+      "permission_count": 13
+    },
+    {
+      "apk": "app.passwordstore.agrahn_11603.apk",
+      "apk_size": 8220889,
+      "dex_date": "1981-01-01",
+      "dex_size": 7782880,
+      "permission_count": 8
+    },
+    {
+      "apk": "app.plugbrain.android_154.apk",
+      "apk_size": 4480607,
+      "dex_date": "1981-01-01",
+      "dex_size": 3447360,
+      "permission_count": 7
+    },
+    {
+      "apk": "app.podiumpodcasts.podium_1000008.apk",
+      "apk_size": 8512374,
+      "dex_date": "1981-01-01",
+      "dex_size": 7806512,
+      "permission_count": 9
+    },
+    {
+      "apk": "app.pomodorot_233.apk",
+      "apk_size": 64235440,
+      "dex_date": "2026-02-16",
+      "dex_size": 5205392,
+      "permission_count": 2
+    },
+    {
+      "apk": "app.prav.client_4215719.apk",
+      "apk_size": 32692263,
+      "dex_date": "1981-01-01",
+      "dex_size": 8765324,
+      "permission_count": 50
+    },
+    {
+      "apk": "app.pwhs.blockads_47.apk",
+      "apk_size": 57806939,
+      "dex_date": "1981-01-01",
+      "dex_size": 6766768,
+      "permission_count": 11
+    },
+    {
+      "apk": "app.pwhs.universalinstaller_5.apk",
+      "apk_size": 3522975,
+      "dex_date": "1981-01-01",
+      "dex_size": 4573144,
+      "permission_count": 18
+    },
+    {
+      "apk": "app.reading.stoic.stoicreading2_77.apk",
+      "apk_size": 10335040,
+      "dex_date": "1981-01-01",
+      "dex_size": 8745084,
+      "permission_count": 2
+    },
+    {
+      "apk": "app.seeneva.reader_4.apk",
+      "apk_size": 27173043,
+      "dex_date": "1981-01-01",
+      "dex_size": 3118104,
+      "permission_count": 5
+    },
+    {
+      "apk": "app.shosetsu.android.fdroid_45.apk",
+      "apk_size": 6682431,
+      "dex_date": "1981-01-01",
+      "dex_size": 9827296,
+      "permission_count": 10
+    },
+    {
+      "apk": "app.siftrecipes_6.apk",
+      "apk_size": 80343174,
+      "dex_date": "1981-01-01",
+      "dex_size": 8336580,
+      "permission_count": 10
+    },
+    {
+      "apk": "app.simple.inure_10701.apk",
+      "apk_size": 27829589,
+      "dex_date": "1981-01-01",
+      "dex_size": 9767108,
+      "permission_count": 28
+    },
+    {
+      "apk": "app.simple.peri_956.apk",
+      "apk_size": 4140074,
+      "dex_date": "1981-01-01",
+      "dex_size": 5496236,
+      "permission_count": 13
+    },
+    {
+      "apk": "app.slauncher_104.apk",
+      "apk_size": 3340565,
+      "dex_date": "1981-01-01",
+      "dex_size": 1801296,
+      "permission_count": 13
+    },
+    {
+      "apk": "app.smarttube.fdroid_2353.apk",
+      "apk_size": 37452052,
+      "dex_date": "1981-01-01",
+      "dex_size": 8128144,
+      "permission_count": 22
+    },
+    {
+      "apk": "app.smarzaro.foss4g2024.schedule_105.apk",
+      "apk_size": 7002058,
+      "dex_date": "1981-01-01",
+      "dex_size": 8534460,
+      "permission_count": 9
+    },
+    {
+      "apk": "app.sudroid.raagadb_8.apk",
+      "apk_size": 17042750,
+      "dex_date": "1981-01-01",
+      "dex_size": 30501248,
+      "permission_count": 2
+    },
+    {
+      "apk": "app.tice.TICE.production_38.apk",
+      "apk_size": 25029330,
+      "dex_date": "1981-01-01",
+      "dex_size": 9026052,
+      "permission_count": 8
+    },
+    {
+      "apk": "app.traced_it_15.apk",
+      "apk_size": 1705035,
+      "dex_date": "1981-01-01",
+      "dex_size": 2641200,
+      "permission_count": 1
+    },
+    {
+      "apk": "app.tujice.jergasColombia_1.apk",
+      "apk_size": 4581244,
+      "dex_date": "1981-01-01",
+      "dex_size": 8059068,
+      "permission_count": 0
+    },
+    {
+      "apk": "app.udderance_202506270.apk",
+      "apk_size": 13656144,
+      "dex_date": "1981-01-01",
+      "dex_size": 63396,
+      "permission_count": 0
+    },
+    {
+      "apk": "app.umerfarooq.littlerelay_9.apk",
+      "apk_size": 16638944,
+      "dex_date": "1981-01-01",
+      "dex_size": 29670400,
+      "permission_count": 12
+    },
+    {
+      "apk": "app.umerfarooq.websocketcam_3.apk",
+      "apk_size": 16745521,
+      "dex_date": "1981-01-01",
+      "dex_size": 26510844,
+      "permission_count": 8
+    },
+    {
+      "apk": "app.usp_81.apk",
+      "apk_size": 1730492,
+      "dex_date": "1981-01-01",
+      "dex_size": 87600,
+      "permission_count": 1
+    },
+    {
+      "apk": "app.varlorg.unote_32.apk",
+      "apk_size": 212706,
+      "dex_date": "1981-01-01",
+      "dex_size": 163036,
+      "permission_count": 7
+    },
+    {
+      "apk": "app.vger.voyager_876.apk",
+      "apk_size": 7968728,
+      "dex_date": "1981-01-01",
+      "dex_size": 8463644,
+      "permission_count": 6
+    },
+    {
+      "apk": "app.weatheroverview_1.apk",
+      "apk_size": 2109227,
+      "dex_date": "1980-00-00",
+      "dex_size": 3032700,
+      "permission_count": 1
+    },
+    {
+      "apk": "app.wispar.wispar_36.apk",
+      "apk_size": 94873559,
+      "dex_date": "1981-01-01",
+      "dex_size": 2906312,
+      "permission_count": 8
+    },
+    {
+      "apk": "app.zimly.backup_93.apk",
+      "apk_size": 9912233,
+      "dex_date": "1981-01-01",
+      "dex_size": 7229920,
+      "permission_count": 11
+    },
+    {
+      "apk": "app.zornslemma.mypricelog_4.apk",
+      "apk_size": 4083556,
+      "dex_date": "1981-01-01",
+      "dex_size": 3381208,
+      "permission_count": 2
+    },
+    {
+      "apk": "apps.droidnotify_67.apk",
+      "apk_size": 2502288,
+      "dex_date": "2013-04-08",
+      "dex_size": 812564,
+      "permission_count": 30
+    },
+    {
+      "apk": "aq.com.sharetobrowser_1.apk",
+      "apk_size": 1061057,
+      "dex_date": "2016-11-01",
+      "dex_size": 2023104,
+      "permission_count": 0
+    },
+    {
+      "apk": "aq.metallists.loudbang_53.apk",
+      "apk_size": 9093936,
+      "dex_date": "1981-01-01",
+      "dex_size": 8443256,
+      "permission_count": 15
+    },
+    {
+      "apk": "ara.memoryguardian_14.apk",
+      "apk_size": 1238341,
+      "dex_date": "1981-01-01",
+      "dex_size": 2177676,
+      "permission_count": 6
+    },
+    {
+      "apk": "ardash.doodledudette_1000008.apk",
+      "apk_size": 3408866,
+      "dex_date": "1981-01-01",
+      "dex_size": 477060,
+      "permission_count": 0
+    },
+    {
+      "apk": "ardash.lato_1001006.apk",
+      "apk_size": 9632467,
+      "dex_date": "1981-01-01",
+      "dex_size": 697072,
+      "permission_count": 0
+    },
+    {
+      "apk": "art.pegasko.yeeemp_1009.apk",
+      "apk_size": 2212043,
+      "dex_date": "1981-01-01",
+      "dex_size": 1438944,
+      "permission_count": 3
+    },
+    {
+      "apk": "askanimus.arbeitszeiterfassung2_211012.apk",
+      "apk_size": 7777409,
+      "dex_date": "1981-01-01",
+      "dex_size": 9906280,
+      "permission_count": 7
+    },
+    {
+      "apk": "at.bitfire.cadroid_8.apk",
+      "apk_size": 102335,
+      "dex_date": "2015-05-09",
+      "dex_size": 41784,
+      "permission_count": 2
+    },
+    {
+      "apk": "at.bitfire.davdroid_405100003.apk",
+      "apk_size": 16016134,
+      "dex_date": "1981-01-01",
+      "dex_size": 9425004,
+      "permission_count": 23
+    },
+    {
+      "apk": "at.bitfire.icsdroid_92.apk",
+      "apk_size": 16032828,
+      "dex_date": "1981-01-01",
+      "dex_size": 8744200,
+      "permission_count": 16
+    },
+    {
+      "apk": "at.dasz.KolabDroid_95.apk",
+      "apk_size": 339083,
+      "dex_date": "2013-08-12",
+      "dex_size": 1069336,
+      "permission_count": 13
+    },
+    {
+      "apk": "at.finderlein.noe_2020.apk",
+      "apk_size": 53646957,
+      "dex_date": "1981-01-01",
+      "dex_size": 774140,
+      "permission_count": 7
+    },
+    {
+      "apk": "at.h4x.amsprung_105.apk",
+      "apk_size": 6144215,
+      "dex_date": "1981-01-01",
+      "dex_size": 9015264,
+      "permission_count": 2
+    },
+    {
+      "apk": "at.h4x.awhip_10100.apk",
+      "apk_size": 3824013,
+      "dex_date": "1981-01-01",
+      "dex_size": 5220308,
+      "permission_count": 0
+    },
+    {
+      "apk": "at.jclehner.rxdroid_9380.apk",
+      "apk_size": 3877861,
+      "dex_date": "1981-01-01",
+      "dex_size": 7281404,
+      "permission_count": 7
+    },
+    {
+      "apk": "at.krixec.ied_18.apk",
+      "apk_size": 79926401,
+      "dex_date": "1981-01-01",
+      "dex_size": 5050160,
+      "permission_count": 1
+    },
+    {
+      "apk": "at.krixec.rosary_12.apk",
+      "apk_size": 3200338,
+      "dex_date": "1981-01-01",
+      "dex_size": 2602008,
+      "permission_count": 2
+    },
+    {
+      "apk": "at.linuxtage.Eventfahrplan_1700028.apk",
+      "apk_size": 9031954,
+      "dex_date": "1981-01-01",
+      "dex_size": 8765072,
+      "permission_count": 9
+    },
+    {
+      "apk": "at.manuelbichler.octalsuntime_6.apk",
+      "apk_size": 4615159,
+      "dex_date": "1981-01-01",
+      "dex_size": 9016260,
+      "permission_count": 4
+    },
+    {
+      "apk": "at.mikenet.serbianlatintocyrillic_61.apk",
+      "apk_size": 1104916,
+      "dex_date": "1981-01-01",
+      "dex_size": 1318980,
+      "permission_count": 2
+    },
+    {
+      "apk": "at.or.at.plugoffairplane_1010.apk",
+      "apk_size": 29419,
+      "dex_date": "1980-01-01",
+      "dex_size": 43380,
+      "permission_count": 0
+    },
+    {
+      "apk": "at.techbee.jtx_215000004.apk",
+      "apk_size": 13012323,
+      "dex_date": "1981-01-01",
+      "dex_size": 9870968,
+      "permission_count": 24
+    },
+    {
+      "apk": "at.tomtasche.reader_199.apk",
+      "apk_size": 95555992,
+      "dex_date": "1981-01-01",
+      "dex_size": 1338932,
+      "permission_count": 3
+    },
+    {
+      "apk": "atm.nasaimages_3.apk",
+      "apk_size": 2689308,
+      "dex_date": "1980-01-01",
+      "dex_size": 4677784,
+      "permission_count": 2
+    },
+    {
+      "apk": "atm.rocketguardian_1.apk",
+      "apk_size": 4921673,
+      "dex_date": "1980-01-01",
+      "dex_size": 3202932,
+      "permission_count": 0
+    },
+    {
+      "apk": "atm.starun.game_121.apk",
+      "apk_size": 10567625,
+      "dex_date": "2017-03-01",
+      "dex_size": 2700544,
+      "permission_count": 0
+    },
+    {
+      "apk": "au.com.wallaceit.reddinator_68.apk",
+      "apk_size": 3367335,
+      "dex_date": "1980-01-01",
+      "dex_size": 3610152,
+      "permission_count": 5
+    },
+    {
+      "apk": "au.id.colby.nfcquicksettings_19.apk",
+      "apk_size": 1977448,
+      "dex_date": "1981-01-01",
+      "dex_size": 1301032,
+      "permission_count": 3
+    },
+    {
+      "apk": "au.id.micolous.farebot_3920.apk",
+      "apk_size": 7924942,
+      "dex_date": "1980-00-00",
+      "dex_size": 4279832,
+      "permission_count": 4
+    },
+    {
+      "apk": "audio.funkwhale.ffa_300000.apk",
+      "apk_size": 6538571,
+      "dex_date": "1981-01-01",
+      "dex_size": 4652328,
+      "permission_count": 7
+    },
+    {
+      "apk": "audio.omgsoundboard_21.apk",
+      "apk_size": 17765225,
+      "dex_date": "1981-01-01",
+      "dex_size": 30689412,
+      "permission_count": 9
+    },
+    {
+      "apk": "aws.apps.androidDrawables_8.apk",
+      "apk_size": 661541,
+      "dex_date": "2013-03-27",
+      "dex_size": 785760,
+      "permission_count": 1
+    },
+    {
+      "apk": "aws.apps.usbDeviceEnumerator_81.apk",
+      "apk_size": 4786738,
+      "dex_date": "1981-01-01",
+      "dex_size": 8543960,
+      "permission_count": 5
+    },
+    {
+      "apk": "axp.tool.apkextractor_5.apk",
+      "apk_size": 1439528,
+      "dex_date": "1980-01-01",
+      "dex_size": 2130672,
+      "permission_count": 3
+    },
+    {
+      "apk": "barilyuk.batterytemperature_4.apk",
+      "apk_size": 4634705,
+      "dex_date": "1981-01-01",
+      "dex_size": 8285144,
+      "permission_count": 8
+    },
+    {
+      "apk": "barilyuk.texetescribe_2.apk",
+      "apk_size": 4666850,
+      "dex_date": "1981-01-01",
+      "dex_size": 8456832,
+      "permission_count": 4
+    },
+    {
+      "apk": "be.bhasher.mobileinpact_12.apk",
+      "apk_size": 24643154,
+      "dex_date": "1981-01-01",
+      "dex_size": 2163816,
+      "permission_count": 1
+    },
+    {
+      "apk": "be.brunoparmentier.dnssetter_3.apk",
+      "apk_size": 60128,
+      "dex_date": "2015-04-28",
+      "dex_size": 43276,
+      "permission_count": 1
+    },
+    {
+      "apk": "be.casperverswijvelt.unifiedinternetqs_3010200.apk",
+      "apk_size": 5191439,
+      "dex_date": "1981-01-01",
+      "dex_size": 2963324,
+      "permission_count": 13
+    },
+    {
+      "apk": "be.chvp.nanoledger_2026040501.apk",
+      "apk_size": 13314499,
+      "dex_date": "1981-01-01",
+      "dex_size": 30088720,
+      "permission_count": 2
+    },
+    {
+      "apk": "be.digitalia.fosdem_2300230.apk",
+      "apk_size": 2199049,
+      "dex_date": "1981-01-01",
+      "dex_size": 2186568,
+      "permission_count": 4
+    },
+    {
+      "apk": "be.humanoids.webthingify_2.apk",
+      "apk_size": 2541163,
+      "dex_date": "1980-01-01",
+      "dex_size": 4196048,
+      "permission_count": 9
+    },
+    {
+      "apk": "be.knars.netflixtoimdb_6.apk",
+      "apk_size": 4365088,
+      "dex_date": "1981-01-01",
+      "dex_size": 3955096,
+      "permission_count": 0
+    },
+    {
+      "apk": "be.lionslink.ucllstudent_10101.apk",
+      "apk_size": 3806558,
+      "dex_date": "2015-09-19",
+      "dex_size": 448372,
+      "permission_count": 1
+    },
+    {
+      "apk": "be.mygod.vpnhotspot_foss_1035.apk",
+      "apk_size": 6096188,
+      "dex_date": "1981-01-01",
+      "dex_size": 4760188,
+      "permission_count": 10
+    },
+    {
+      "apk": "be.ppareit.shutdown_10201.apk",
+      "apk_size": 60685,
+      "dex_date": "2015-01-24",
+      "dex_size": 20488,
+      "permission_count": 1
+    },
+    {
+      "apk": "be.ppareit.swiftp_free_30100.apk",
+      "apk_size": 2753738,
+      "dex_date": "1980-01-01",
+      "dex_size": 3523164,
+      "permission_count": 10
+    },
+    {
+      "apk": "be.ugent.zeus.hydra.open_37400.apk",
+      "apk_size": 4252394,
+      "dex_date": "1981-01-01",
+      "dex_size": 3728128,
+      "permission_count": 11
+    },
+    {
+      "apk": "be.uhasselt.privacypolice_13.apk",
+      "apk_size": 134529,
+      "dex_date": "2016-10-05",
+      "dex_size": 49640,
+      "permission_count": 5
+    },
+    {
+      "apk": "bim.app_1600.apk",
+      "apk_size": 32379324,
+      "dex_date": "1981-01-01",
+      "dex_size": 1420168,
+      "permission_count": 3
+    },
+    {
+      "apk": "biz.binarysolutions.healthybatterycharging_23.apk",
+      "apk_size": 2650559,
+      "dex_date": "1981-01-01",
+      "dex_size": 1741260,
+      "permission_count": 5
+    },
+    {
+      "apk": "biz.binarysolutions.mindfulnessmeditation_7.apk",
+      "apk_size": 2720533,
+      "dex_date": "1981-01-01",
+      "dex_size": 1786516,
+      "permission_count": 4
+    },
+    {
+      "apk": "biz.binarysolutions.mindfulscale_9.apk",
+      "apk_size": 899342,
+      "dex_date": "1981-01-01",
+      "dex_size": 674824,
+      "permission_count": 2
+    },
+    {
+      "apk": "biz.binarysolutions.stress_6.apk",
+      "apk_size": 956165,
+      "dex_date": "1981-01-01",
+      "dex_size": 668936,
+      "permission_count": 2
+    },
+    {
+      "apk": "biz.binarysolutions.vatcalculator_11.apk",
+      "apk_size": 2541473,
+      "dex_date": "1981-01-01",
+      "dex_size": 2017924,
+      "permission_count": 2
+    },
+    {
+      "apk": "biz.binarysolutions.weatherusa_27.apk",
+      "apk_size": 2627916,
+      "dex_date": "1981-01-01",
+      "dex_size": 2232392,
+      "permission_count": 5
+    },
+    {
+      "apk": "biz.gyrus.yaab_30.apk",
+      "apk_size": 238384,
+      "dex_date": "2014-06-29",
+      "dex_size": 451424,
+      "permission_count": 4
+    },
+    {
+      "apk": "bluepie.ad_silence_55.apk",
+      "apk_size": 175552,
+      "dex_date": "1981-01-01",
+      "dex_size": 140884,
+      "permission_count": 3
+    },
+    {
+      "apk": "bored.codebyk.mintcalc_111.apk",
+      "apk_size": 21939186,
+      "dex_date": "1981-01-01",
+      "dex_size": 621104,
+      "permission_count": 1
+    },
+    {
+      "apk": "br.com.wasystems.audiooutputswitcher_11.apk",
+      "apk_size": 98281,
+      "dex_date": "1981-01-01",
+      "dex_size": 65016,
+      "permission_count": 2
+    },
+    {
+      "apk": "br.odb.knights_5.apk",
+      "apk_size": 2120804,
+      "dex_date": "1980-01-01",
+      "dex_size": 68372,
+      "permission_count": 0
+    },
+    {
+      "apk": "btools.routingapp_56.apk",
+      "apk_size": 3293455,
+      "dex_date": "1981-01-01",
+      "dex_size": 2536076,
+      "permission_count": 10
+    },
+    {
+      "apk": "buet.rafi.dictionary_5.apk",
+      "apk_size": 477072,
+      "dex_date": "2013-12-10",
+      "dex_size": 23948,
+      "permission_count": 0
+    },
+    {
+      "apk": "bughunter2.smsfilter_4.apk",
+      "apk_size": 74240,
+      "dex_date": "2014-08-27",
+      "dex_size": 38992,
+      "permission_count": 1
+    },
+    {
+      "apk": "bus.chio.wishmaster_1003.apk",
+      "apk_size": 3460606,
+      "dex_date": "1980-00-00",
+      "dex_size": 2575024,
+      "permission_count": 5
+    },
+    {
+      "apk": "business.braid.f_wallet_120.apk",
+      "apk_size": 37058205,
+      "dex_date": "1981-01-01",
+      "dex_size": 2463648,
+      "permission_count": 3
+    },
+    {
+      "apk": "by.yauhenl.gardine_4.apk",
+      "apk_size": 2600479,
+      "dex_date": "1980-01-01",
+      "dex_size": 4306176,
+      "permission_count": 2
+    },
+    {
+      "apk": "byrne.utilities.converter_1.apk",
+      "apk_size": 21970,
+      "dex_date": "2014-07-21",
+      "dex_size": 20892,
+      "permission_count": 0
+    },
+    {
+      "apk": "ca.andries.portknocker_1.apk",
+      "apk_size": 3525018,
+      "dex_date": "1980-00-00",
+      "dex_size": 6917368,
+      "permission_count": 1
+    },
+    {
+      "apk": "ca.chancehorizon.paseo_10700.apk",
+      "apk_size": 6459255,
+      "dex_date": "1981-01-01",
+      "dex_size": 9139052,
+      "permission_count": 12
+    },
+    {
+      "apk": "ca.cmetcalfe.locationshare_9.apk",
+      "apk_size": 1205979,
+      "dex_date": "1981-01-01",
+      "dex_size": 1350668,
+      "permission_count": 2
+    },
+    {
+      "apk": "ca.cmetcalfe.xposed.disablebatterywarnings_3.apk",
+      "apk_size": 33818,
+      "dex_date": "1980-01-01",
+      "dex_size": 4816,
+      "permission_count": 0
+    },
+    {
+      "apk": "ca.farrelltonsolar.classic_314.apk",
+      "apk_size": 2354811,
+      "dex_date": "1980-00-00",
+      "dex_size": 1495424,
+      "permission_count": 8
+    },
+    {
+      "apk": "ca.fuwafuwa.kaku_78.apk",
+      "apk_size": 78247556,
+      "dex_date": "1981-01-01",
+      "dex_size": 8131308,
+      "permission_count": 3
+    },
+    {
+      "apk": "ca.hamaluik.timecop_45.apk",
+      "apk_size": 23940825,
+      "dex_date": "1981-01-01",
+      "dex_size": 1006208,
+      "permission_count": 22
+    },
+    {
+      "apk": "ca.littlesvr.everyonestimetable_5.apk",
+      "apk_size": 712158,
+      "dex_date": "1981-01-01",
+      "dex_size": 557548,
+      "permission_count": 1
+    },
+    {
+      "apk": "ca.mimic.apphangar_75.apk",
+      "apk_size": 1789594,
+      "dex_date": "2017-01-11",
+      "dex_size": 1584056,
+      "permission_count": 4
+    },
+    {
+      "apk": "ca.momi.lift_2.apk",
+      "apk_size": 2396101,
+      "dex_date": "1980-01-01",
+      "dex_size": 3817200,
+      "permission_count": 2
+    },
+    {
+      "apk": "ca.mudar.fairphone.peaceofmind_22.apk",
+      "apk_size": 3080942,
+      "dex_date": "1980-01-01",
+      "dex_size": 4185772,
+      "permission_count": 3
+    },
+    {
+      "apk": "ca.ramzan.delist_3.apk",
+      "apk_size": 2202238,
+      "dex_date": "1981-01-01",
+      "dex_size": 1860388,
+      "permission_count": 0
+    },
+    {
+      "apk": "ca.ramzan.virtuosity_2.apk",
+      "apk_size": 2507872,
+      "dex_date": "1981-01-01",
+      "dex_size": 2303940,
+      "permission_count": 2
+    },
+    {
+      "apk": "ca.rmen.android.frenchcalendar_1182.apk",
+      "apk_size": 1168009,
+      "dex_date": "1980-01-01",
+      "dex_size": 401340,
+      "permission_count": 1
+    },
+    {
+      "apk": "ca.rmen.android.poetassistant_113101.apk",
+      "apk_size": 21313202,
+      "dex_date": "1981-01-01",
+      "dex_size": 1989488,
+      "permission_count": 4
+    },
+    {
+      "apk": "ca.rmen.android.scrumchatter_10606.apk",
+      "apk_size": 1859605,
+      "dex_date": "1980-01-01",
+      "dex_size": 2406280,
+      "permission_count": 0
+    },
+    {
+      "apk": "ca.rmen.nounours_358.apk",
+      "apk_size": 4092366,
+      "dex_date": "1981-01-01",
+      "dex_size": 133148,
+      "permission_count": 2
+    },
+    {
+      "apk": "ca.snoe.deedum_21.apk",
+      "apk_size": 21326764,
+      "dex_date": "1981-01-01",
+      "dex_size": 365248,
+      "permission_count": 2
+    },
+    {
+      "apk": "ca.voiditswarranty.roadtripradar_30.apk",
+      "apk_size": 64859641,
+      "dex_date": "1981-01-01",
+      "dex_size": 30474880,
+      "permission_count": 7
+    },
+    {
+      "apk": "caldwell.ben.bites_4.apk",
+      "apk_size": 96903,
+      "dex_date": "2012-09-27",
+      "dex_size": 56920,
+      "permission_count": 2
+    },
+    {
+      "apk": "caldwell.ben.trolly_6.apk",
+      "apk_size": 36981,
+      "dex_date": "2011-06-17",
+      "dex_size": 26356,
+      "permission_count": 0
+    },
+    {
+      "apk": "cash.p.terminal_235.apk",
+      "apk_size": 140149122,
+      "dex_date": "1981-01-01",
+      "dex_size": 13051580,
+      "permission_count": 17
+    },
+    {
+      "apk": "cat.jordihernandez.cinecat_1.apk",
+      "apk_size": 647775,
+      "dex_date": "2015-06-09",
+      "dex_size": 1340200,
+      "permission_count": 2
+    },
+    {
+      "apk": "cat.mvmike.minimalcalendarwidget_93.apk",
+      "apk_size": 1387096,
+      "dex_date": "1981-01-01",
+      "dex_size": 1661432,
+      "permission_count": 2
+    },
+    {
+      "apk": "cat.naval.atalaya_1.apk",
+      "apk_size": 12261377,
+      "dex_date": "1981-01-01",
+      "dex_size": 32263292,
+      "permission_count": 5
+    },
+    {
+      "apk": "cat.naval.florae_6.apk",
+      "apk_size": 26348125,
+      "dex_date": "1981-01-01",
+      "dex_size": 1419416,
+      "permission_count": 7
+    },
+    {
+      "apk": "cat.pantsu.nyaapantsu_3.apk",
+      "apk_size": 12748561,
+      "dex_date": "1980-00-00",
+      "dex_size": 8707452,
+      "permission_count": 8
+    },
+    {
+      "apk": "cc.calliope.mini_26.apk",
+      "apk_size": 8877910,
+      "dex_date": "1981-01-01",
+      "dex_size": 9276316,
+      "permission_count": 18
+    },
+    {
+      "apk": "cc.chenhe.qqnotifyevo_20116.apk",
+      "apk_size": 2784248,
+      "dex_date": "1981-01-01",
+      "dex_size": 4633676,
+      "permission_count": 6
+    },
+    {
+      "apk": "cc.echonet.coolmicapp_10300.apk",
+      "apk_size": 3366113,
+      "dex_date": "1980-00-00",
+      "dex_size": 1657492,
+      "permission_count": 4
+    },
+    {
+      "apk": "cc.findfamily.app_13.apk",
+      "apk_size": 106087792,
+      "dex_date": "1981-01-01",
+      "dex_size": 31041704,
+      "permission_count": 17
+    },
+    {
+      "apk": "cc.goll.caff_101.apk",
+      "apk_size": 3168597,
+      "dex_date": "1981-01-01",
+      "dex_size": 2108708,
+      "permission_count": 3
+    },
+    {
+      "apk": "cc.kafuu.bilidownload_20301.apk",
+      "apk_size": 105522441,
+      "dex_date": "1981-01-01",
+      "dex_size": 13078680,
+      "permission_count": 9
+    },
+    {
+      "apk": "cc.narumi.chaldea.fdroid_988.apk",
+      "apk_size": 53958195,
+      "dex_date": "1981-01-01",
+      "dex_size": 6374588,
+      "permission_count": 18
+    },
+    {
+      "apk": "cc.polysfaer.stochapop_4.apk",
+      "apk_size": 2819049,
+      "dex_date": "1981-01-01",
+      "dex_size": 2452120,
+      "permission_count": 6
+    },
+    {
+      "apk": "cc.sovellus.vrcaa_200802.apk",
+      "apk_size": 7800032,
+      "dex_date": "1981-01-01",
+      "dex_size": 16493456,
+      "permission_count": 10
+    },
+    {
+      "apk": "cf.playhi.freezeyou_151.apk",
+      "apk_size": 3796080,
+      "dex_date": "1981-01-01",
+      "dex_size": 2391744,
+      "permission_count": 26
+    },
+    {
+      "apk": "cf.theonewiththebraid.guerrilla_mail_6.apk",
+      "apk_size": 19869501,
+      "dex_date": "1981-01-01",
+      "dex_size": 349764,
+      "permission_count": 1
+    },
+    {
+      "apk": "ch.abertschi.adfree_42.apk",
+      "apk_size": 4148406,
+      "dex_date": "1981-01-01",
+      "dex_size": 8758148,
+      "permission_count": 4
+    },
+    {
+      "apk": "ch.abertschi.waterme.water_me_8.apk",
+      "apk_size": 19943429,
+      "dex_date": "1981-01-01",
+      "dex_size": 1446340,
+      "permission_count": 8
+    },
+    {
+      "apk": "ch.bailu.aat_45.apk",
+      "apk_size": 4065198,
+      "dex_date": "1981-01-01",
+      "dex_size": 7148300,
+      "permission_count": 14
+    },
+    {
+      "apk": "ch.blinkenlights.android.vanilla_13200.apk",
+      "apk_size": 3712830,
+      "dex_date": "1981-01-01",
+      "dex_size": 2765936,
+      "permission_count": 10
+    },
+    {
+      "apk": "ch.blinkenlights.android.vanillaplug_170.apk",
+      "apk_size": 66663,
+      "dex_date": "1980-01-01",
+      "dex_size": 6528,
+      "permission_count": 1
+    },
+    {
+      "apk": "ch.bubendorf.locusaddon.gsakdatabase_38.apk",
+      "apk_size": 1491175,
+      "dex_date": "1981-01-01",
+      "dex_size": 1761112,
+      "permission_count": 3
+    },
+    {
+      "apk": "ch.cryptobit.letterbox_1.apk",
+      "apk_size": 3505233,
+      "dex_date": "1980-01-01",
+      "dex_size": 3859676,
+      "permission_count": 0
+    },
+    {
+      "apk": "ch.famoser.mensa_70.apk",
+      "apk_size": 2069486,
+      "dex_date": "1981-01-01",
+      "dex_size": 3418968,
+      "permission_count": 3
+    },
+    {
+      "apk": "ch.fixme.cowsay_5.apk",
+      "apk_size": 45702,
+      "dex_date": "2014-03-15",
+      "dex_size": 21788,
+      "permission_count": 1
+    },
+    {
+      "apk": "ch.gassenarbeit.bern.your.rights_203.apk",
+      "apk_size": 935967,
+      "dex_date": "1980-01-01",
+      "dex_size": 118404,
+      "permission_count": 1
+    },
+    {
+      "apk": "ch.hgdev.toposuite_75.apk",
+      "apk_size": 4013928,
+      "dex_date": "1981-01-01",
+      "dex_size": 2201812,
+      "permission_count": 2
+    },
+    {
+      "apk": "ch.ihdg.calendarcolor_5.apk",
+      "apk_size": 8434374,
+      "dex_date": "1981-01-01",
+      "dex_size": 12477068,
+      "permission_count": 4
+    },
+    {
+      "apk": "ch.joshuah.bibleverseapp_6.apk",
+      "apk_size": 6817167,
+      "dex_date": "1981-01-01",
+      "dex_size": 9557560,
+      "permission_count": 5
+    },
+    {
+      "apk": "ch.logixisland.anuto_34.apk",
+      "apk_size": 6297049,
+      "dex_date": "1981-01-01",
+      "dex_size": 276800,
+      "permission_count": 0
+    },
+    {
+      "apk": "ch.mydoli.focal_1.apk",
+      "apk_size": 7435945,
+      "dex_date": "1981-01-01",
+      "dex_size": 9409728,
+      "permission_count": 4
+    },
+    {
+      "apk": "ch.nilsgrob.android.bluemoon_9.apk",
+      "apk_size": 18825811,
+      "dex_date": "1981-01-01",
+      "dex_size": 30815512,
+      "permission_count": 6
+    },
+    {
+      "apk": "ch.protonvpn.android_605177200.apk",
+      "apk_size": 54954000,
+      "dex_date": "1981-01-01",
+      "dex_size": 9117592,
+      "permission_count": 13
+    },
+    {
+      "apk": "ch.rmy.android.http_shortcuts_1104030000.apk",
+      "apk_size": 20951980,
+      "dex_date": "1981-01-01",
+      "dex_size": 9425412,
+      "permission_count": 23
+    },
+    {
+      "apk": "ch.rmy.android.statusbar_tacho_2003150100.apk",
+      "apk_size": 3410894,
+      "dex_date": "1981-01-01",
+      "dex_size": 2533116,
+      "permission_count": 8
+    },
+    {
+      "apk": "ch.seto.kanjirecog_4.apk",
+      "apk_size": 1848788,
+      "dex_date": "1981-01-01",
+      "dex_size": 1769808,
+      "permission_count": 1
+    },
+    {
+      "apk": "ch.simonste.jasstafel_72.apk",
+      "apk_size": 55301099,
+      "dex_date": "1981-01-01",
+      "dex_size": 1020608,
+      "permission_count": 3
+    },
+    {
+      "apk": "ch.thgoebel.spartathlonapp_11.apk",
+      "apk_size": 14700335,
+      "dex_date": "1980-01-01",
+      "dex_size": 1027768,
+      "permission_count": 3
+    },
+    {
+      "apk": "ch.threema.app.libre_1137.apk",
+      "apk_size": 76911751,
+      "dex_date": "1981-01-01",
+      "dex_size": 10336760,
+      "permission_count": 45
+    },
+    {
+      "apk": "ch.tiim.markdown_widget_7.apk",
+      "apk_size": 18713527,
+      "dex_date": "1981-01-01",
+      "dex_size": 8826832,
+      "permission_count": 0
+    },
+    {
+      "apk": "ch.ulys.k19player_13.apk",
+      "apk_size": 10697268,
+      "dex_date": "1981-01-01",
+      "dex_size": 4095716,
+      "permission_count": 4
+    },
+    {
+      "apk": "chat.fluffy.fluffychat_3551.apk",
+      "apk_size": 181147653,
+      "dex_date": "1981-01-01",
+      "dex_size": 7039408,
+      "permission_count": 33
+    },
+    {
+      "apk": "chat.jmp.simmanager_301.apk",
+      "apk_size": 12867901,
+      "dex_date": "1981-01-01",
+      "dex_size": 9005264,
+      "permission_count": 8
+    },
+    {
+      "apk": "chat.seers.app_7.apk",
+      "apk_size": 26290524,
+      "dex_date": "1981-01-01",
+      "dex_size": 26411920,
+      "permission_count": 10
+    },
+    {
+      "apk": "chat.simplex.app_337.apk",
+      "apk_size": 74243972,
+      "dex_date": "1981-01-01",
+      "dex_size": 19602004,
+      "permission_count": 22
+    },
+    {
+      "apk": "chromahub.rhythm.app_47364975.apk",
+      "apk_size": 32082040,
+      "dex_date": "1981-01-01",
+      "dex_size": 30921828,
+      "permission_count": 21
+    },
+    {
+      "apk": "cityfreqs.com.pilfershushjammer_43.apk",
+      "apk_size": 3655765,
+      "dex_date": "1981-01-01",
+      "dex_size": 5035384,
+      "permission_count": 3
+    },
+    {
+      "apk": "cl.coders.faketraveler_231.apk",
+      "apk_size": 5539288,
+      "dex_date": "1981-01-01",
+      "dex_size": 9409844,
+      "permission_count": 6
+    },
+    {
+      "apk": "click.dummer.yidkey_11.apk",
+      "apk_size": 1628050,
+      "dex_date": "1980-01-01",
+      "dex_size": 1954640,
+      "permission_count": 0
+    },
+    {
+      "apk": "cloud.valetudo.companion_15.apk",
+      "apk_size": 3678433,
+      "dex_date": "1981-01-01",
+      "dex_size": 6800124,
+      "permission_count": 7
+    },
+    {
+      "apk": "cn.a10miaomiao.bilidown_1004.apk",
+      "apk_size": 18498478,
+      "dex_date": "1981-01-01",
+      "dex_size": 13579872,
+      "permission_count": 8
+    },
+    {
+      "apk": "cn.ac.lz233.tarnhelm_20250630.apk",
+      "apk_size": 2459200,
+      "dex_date": "1981-01-01",
+      "dex_size": 2165960,
+      "permission_count": 11
+    },
+    {
+      "apk": "cn.rbc.termuc_11.apk",
+      "apk_size": 192425,
+      "dex_date": "1981-01-01",
+      "dex_size": 186908,
+      "permission_count": 7
+    },
+    {
+      "apk": "cn.super12138.todo_1048.apk",
+      "apk_size": 2395223,
+      "dex_date": "1981-01-01",
+      "dex_size": 3494716,
+      "permission_count": 2
+    },
+    {
+      "apk": "co.adityarajput.alarmetrics_9.apk",
+      "apk_size": 3211023,
+      "dex_date": "1981-01-01",
+      "dex_size": 2300824,
+      "permission_count": 3
+    },
+    {
+      "apk": "co.adityarajput.fileflow_9.apk",
+      "apk_size": 5886290,
+      "dex_date": "1981-01-01",
+      "dex_size": 3897824,
+      "permission_count": 9
+    },
+    {
+      "apk": "co.adityarajput.notifilter_32.apk",
+      "apk_size": 5618228,
+      "dex_date": "1981-01-01",
+      "dex_size": 3606548,
+      "permission_count": 10
+    },
+    {
+      "apk": "co.appreactor.news_24.apk",
+      "apk_size": 23692204,
+      "dex_date": "1981-01-01",
+      "dex_size": 8554988,
+      "permission_count": 8
+    },
+    {
+      "apk": "co.ec.cnsyn.codecatcher_131.apk",
+      "apk_size": 2560513,
+      "dex_date": "1981-01-01",
+      "dex_size": 4464228,
+      "permission_count": 10
+    },
+    {
+      "apk": "co.electriccoin.zcash.foss_1643.apk",
+      "apk_size": 120938581,
+      "dex_date": "1981-01-01",
+      "dex_size": 11973316,
+      "permission_count": 10
+    },
+    {
+      "apk": "co.epitre.aelf_lectures_84.apk",
+      "apk_size": 15725827,
+      "dex_date": "1981-01-01",
+      "dex_size": 2319400,
+      "permission_count": 7
+    },
+    {
+      "apk": "co.garmax.materialflashlight_30.apk",
+      "apk_size": 2006722,
+      "dex_date": "1981-01-01",
+      "dex_size": 2047748,
+      "permission_count": 5
+    },
+    {
+      "apk": "co.prestosole.clima_203.apk",
+      "apk_size": 19234593,
+      "dex_date": "1981-01-01",
+      "dex_size": 1959320,
+      "permission_count": 3
+    },
+    {
+      "apk": "co.timsmart.vouchervault_29.apk",
+      "apk_size": 22561421,
+      "dex_date": "1981-01-01",
+      "dex_size": 1858360,
+      "permission_count": 5
+    },
+    {
+      "apk": "code.alimiracle.image_meta_cleaner_1.apk",
+      "apk_size": 21268411,
+      "dex_date": "1981-01-01",
+      "dex_size": 956756,
+      "permission_count": 3
+    },
+    {
+      "apk": "code.name.monkey.retromusic_10660.apk",
+      "apk_size": 9159048,
+      "dex_date": "1981-01-01",
+      "dex_size": 5825352,
+      "permission_count": 19
+    },
+    {
+      "apk": "codes.swee.diceapp_8.apk",
+      "apk_size": 5650008,
+      "dex_date": "1981-01-01",
+      "dex_size": 8530056,
+      "permission_count": 2
+    },
+    {
+      "apk": "com.Arturo254.opentune_128.apk",
+      "apk_size": 26293743,
+      "dex_date": "1981-01-01",
+      "dex_size": 10808848,
+      "permission_count": 14
+    },
+    {
+      "apk": "com.DartChecker_46.apk",
+      "apk_size": 4967060,
+      "dex_date": "1981-01-01",
+      "dex_size": 7550784,
+      "permission_count": 3
+    },
+    {
+      "apk": "com.EthanHeming.NeuralNetworkSimulator_6.apk",
+      "apk_size": 2681516,
+      "dex_date": "2018-09-18",
+      "dex_size": 2331988,
+      "permission_count": 4
+    },
+    {
+      "apk": "com.GTP.eveminer_19.apk",
+      "apk_size": 1198776,
+      "dex_date": "1980-01-01",
+      "dex_size": 1218796,
+      "permission_count": 1
+    },
+    {
+      "apk": "com.LAPARCELA.nihonoari_13.apk",
+      "apk_size": 24188201,
+      "dex_date": "1981-01-01",
+      "dex_size": 699936,
+      "permission_count": 0
+    },
+    {
+      "apk": "com.MNPDigital.holidayz_4.apk",
+      "apk_size": 22452627,
+      "dex_date": "1981-01-01",
+      "dex_size": 1118948,
+      "permission_count": 2
+    },
+    {
+      "apk": "com.MarcosDiez.shareviahttp_39.apk",
+      "apk_size": 4746766,
+      "dex_date": "1981-01-01",
+      "dex_size": 8587616,
+      "permission_count": 12
+    },
+    {
+      "apk": "com.NightDreamGames.Grade.ly_322.apk",
+      "apk_size": 48971732,
+      "dex_date": "1981-01-01",
+      "dex_size": 1560092,
+      "permission_count": 3
+    },
+    {
+      "apk": "com.Sommerlichter.social_3300.apk",
+      "apk_size": 20378227,
+      "dex_date": "1981-01-01",
+      "dex_size": 9117944,
+      "permission_count": 9
+    },
+    {
+      "apk": "com.a10miaomiao.bilimiao_117.apk",
+      "apk_size": 32618509,
+      "dex_date": "1981-01-01",
+      "dex_size": 31188404,
+      "permission_count": 11
+    },
+    {
+      "apk": "com.a4a.g8invoicing_48.apk",
+      "apk_size": 10489258,
+      "dex_date": "1981-01-01",
+      "dex_size": 5591356,
+      "permission_count": 4
+    },
+    {
+      "apk": "com.aa.mynotes_7.apk",
+      "apk_size": 1455037,
+      "dex_date": "1980-01-01",
+      "dex_size": 1415796,
+      "permission_count": 0
+    },
+    {
+      "apk": "com.aaronjwood.portauthority_67.apk",
+      "apk_size": 1195374,
+      "dex_date": "1981-01-01",
+      "dex_size": 1068268,
+      "permission_count": 5
+    },
+    {
+      "apk": "com.abast.homebot_12.apk",
+      "apk_size": 2275730,
+      "dex_date": "1980-01-01",
+      "dex_size": 3911460,
+      "permission_count": 6
+    },
+    {
+      "apk": "com.abcdjdj.rootverifier_12.apk",
+      "apk_size": 924587,
+      "dex_date": "2016-03-25",
+      "dex_size": 1733672,
+      "permission_count": 1
+    },
+    {
+      "apk": "com.abhijitvalluri.android.fitnotifications_46.apk",
+      "apk_size": 5986351,
+      "dex_date": "1981-01-01",
+      "dex_size": 2588468,
+      "permission_count": 4
+    },
+    {
+      "apk": "com.absinthe.libchecker_2515.apk",
+      "apk_size": 5031952,
+      "dex_date": "1981-01-01",
+      "dex_size": 5132272,
+      "permission_count": 6
+    },
+    {
+      "apk": "com.achep.acdisplay_76.apk",
+      "apk_size": 3124418,
+      "dex_date": "2015-08-01",
+      "dex_size": 2640264,
+      "permission_count": 16
+    },
+    {
+      "apk": "com.acktarius.concealauthenticator_39.apk",
+      "apk_size": 96380723,
+      "dex_date": "1981-01-01",
+      "dex_size": 9347844,
+      "permission_count": 11
+    },
+    {
+      "apk": "com.acszo.redomi.repo_10401.apk",
+      "apk_size": 1982446,
+      "dex_date": "1981-01-01",
+      "dex_size": 2983000,
+      "permission_count": 3
+    },
+    {
+      "apk": "com.activitymanager_561.apk",
+      "apk_size": 5396790,
+      "dex_date": "1981-01-01",
+      "dex_size": 6331644,
+      "permission_count": 4
+    },
+    {
+      "apk": "com.addictologs_1.apk",
+      "apk_size": 78164803,
+      "dex_date": "1981-01-01",
+      "dex_size": 8535596,
+      "permission_count": 4
+    },
+    {
+      "apk": "com.addismaptransit.app_7.apk",
+      "apk_size": 24209039,
+      "dex_date": "1981-01-01",
+      "dex_size": 824032,
+      "permission_count": 5
+    },
+    {
+      "apk": "com.adeeteya.classipod_25.apk",
+      "apk_size": 58453479,
+      "dex_date": "1981-01-01",
+      "dex_size": 3413380,
+      "permission_count": 13
+    },
+    {
+      "apk": "com.adeeteya.digital_calculator_8.apk",
+      "apk_size": 18381209,
+      "dex_date": "1981-01-01",
+      "dex_size": 480392,
+      "permission_count": 3
+    },
+    {
+      "apk": "com.adeeteya.font_gallery_7.apk",
+      "apk_size": 22914593,
+      "dex_date": "1981-01-01",
+      "dex_size": 1100484,
+      "permission_count": 3
+    },
+    {
+      "apk": "com.adeeteya.markdown_editor_9.apk",
+      "apk_size": 67666968,
+      "dex_date": "1981-01-01",
+      "dex_size": 2061080,
+      "permission_count": 5
+    },
+    {
+      "apk": "com.adgad.kboard_41.apk",
+      "apk_size": 1304282,
+      "dex_date": "1980-00-00",
+      "dex_size": 1156596,
+      "permission_count": 3
+    },
+    {
+      "apk": "com.adguard.android.contentblocker_22000250.apk",
+      "apk_size": 6441239,
+      "dex_date": "1981-01-01",
+      "dex_size": 5677524,
+      "permission_count": 6
+    },
+    {
+      "apk": "com.aditya1875.pokeverse_21.apk",
+      "apk_size": 8677506,
+      "dex_date": "1981-01-01",
+      "dex_size": 5551600,
+      "permission_count": 5
+    },
+    {
+      "apk": "com.adonai.manman_177.apk",
+      "apk_size": 2771268,
+      "dex_date": "1981-01-01",
+      "dex_size": 3541088,
+      "permission_count": 2
+    },
+    {
+      "apk": "com.adresilo.android_9.apk",
+      "apk_size": 1725330,
+      "dex_date": "1981-01-01",
+      "dex_size": 2188628,
+      "permission_count": 3
+    },
+    {
+      "apk": "com.aefyr.sai.fdroid_60.apk",
+      "apk_size": 4513049,
+      "dex_date": "1981-01-01",
+      "dex_size": 5879556,
+      "permission_count": 6
+    },
+    {
+      "apk": "com.aerotoad.thud_11.apk",
+      "apk_size": 11252838,
+      "dex_date": "1981-01-01",
+      "dex_size": 6212256,
+      "permission_count": 4
+    },
+    {
+      "apk": "com.afkanerd.deku_83.apk",
+      "apk_size": 38834578,
+      "dex_date": "1981-01-01",
+      "dex_size": 30558908,
+      "permission_count": 25
+    }
+  ],
+  "selection_iqr": {
+    "apk_size_high": 19332063.0,
+    "apk_size_low": 2411875.75,
+    "dex_size_high": 8130517.0,
+    "dex_size_low": 1586696.0
+  },
+  "source_dir": "<REPO>/data/apks/benign"
+}

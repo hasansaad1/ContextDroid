@@ -33,48 +33,77 @@ from protocol_config import (
 from .action_model import _action_signature_for_candidate, _nav_target_key
 from .actions import _execute_action, _guard_planner_action, _primary_ux_controller_action, _repair_input_action_for_execution, _repair_tap_action_for_execution, _sanitize_primary_ux_action, _structured_execute_target_rejection
 from .audit import _action_signature_for_guard, _append_step_trace, _compute_audit_assessment, _execution_counts_as_ux_progress, _execution_kind_for_step, _human_ux_evaluate, _recent_progress_score
-from .device import _bring_target_foreground, _foreground_package, _hierarchy_dominant_foreign_package, _recover_foreground_if_needed, _should_recover_from_foreign_app, _try_dismiss_permission_overlay
+from .device import (
+    _attempt_foreground_recovery_before_abort,
+    _bring_target_foreground,
+    _foreground_package,
+    _foreground_acceptable,
+    _hierarchy_dominant_foreign_package,
+    _recover_foreground_if_needed,
+    _should_recover_from_foreign_app,
+    _try_dismiss_permission_overlay,
+    foreground_mismatch_limit,
+    strict_foreground_enabled,
+)
+from pipeline_errors import AnalysisFailure
 from .dialogs import (
-    _action_is_foreign_dialog_widget,
     _action_is_permission_risk,
-    _bfs_filter_expand_candidates,
     _bfs_mark_permission_risk_if_triggered,
-    _derive_dialog_state,
-    _dialog_policy_action,
-    _first_non_foreign_bfs_candidate,
     _hierarchy_shows_permission_dialog,
-    _nav_key_is_foreign_dialog,
     _package_is_permission_dialog_surface,
 )
-from .goals import _action_nav_token, _derive_app_screen_state, _finalize_post_explore_goals, _goal_execute_status, _plan_ux_goals
+from .explore_policy import DEFAULT_EXPLORE_STRATEGY, ExploreState, ExploreTurnInput
+from .explore_instrumentation import (
+    build_explore_candidate_instrumentation,
+    explore_input_effective_after_action,
+    explore_tier_index_for_reason,
+    frida_log_byte_offset,
+    is_explore_recovery_action,
+)
+from .goals import (
+    _action_nav_token,
+    _derive_app_screen_state,
+    _finalize_post_explore_goals,
+    _goal_execute_status,
+    _goal_is_forward,
+    _goal_needs_text_entry_field,
+    _is_degenerate_transitions_goal,
+    _plan_ux_goals,
+    _single_typing_goal_substantiated,
+    _typing_goal_recently_satisfied,
+)
 from .handoff import _capture_execute_root_reference, _recover_empty_execute_screen, _restore_execute_root_screen, _root_handoff_recovery_actions, _screen_is_valid_execute_root
 from .navigation import (
-    _action_is_back_like,
     _action_is_search_like,
-    _build_bfs_candidates,
+    _bfs_tap_triggers_interior_expand,
     _build_navigation_artifact,
     _build_route_aware_goals,
-    _build_tab_targets,
     _format_navigation_digest,
-    _nav_graph_pick_uncovered_visible,
     _nav_graph_record_transition,
-    _nav_graph_register_candidates,
     _plan_execution_goals_from_digest,
+    _tap_goals_from_nav_graph,
+    _text_entry_probe_field_key,
 )
 from .planner import _ollama_generate_with_retries, _parse_actions_list
 from .prompts import _build_explore_prompt, _build_primary_ux_prompt, _build_prompt, _derive_primary_ux_micro_intent, _merge_primary_ux_into_plan, _plan_primary_app_ux
-from .routing import _route_controller_action_for_goal
+from .routing import _execute_engine_fallback_action, _route_controller_action_for_goal
 from .screen import _allowed_resource_ids_from_elements, _filter_widgets_for_target, _screen_digest_hint, _screen_hash, _screen_is_empty_state, _screen_root_signature, dump_clean_screen
 from .config import (
     PARTIAL_BAD_HANDOFF,
+    PARTIAL_EMPTY_EXECUTE,
+    PARTIAL_EXPLORE_NON_NAVIGABLE,
     _AUDIT_POST_ACTION_SLEEP_SEC,
     _AUDIT_SESSION,
     _BATCH_ACTIONS_MAX,
+    _BFS_INTERIOR_EXPAND_BUDGET,
+    _BFS_EXPAND_STALL_LIMIT_PER_SCREEN,
     _DEFAULT_PRIMARY_UX_TEXT,
     _DIALOG_STUCK_RECOVERY_STREAK,
     _EMPTY_EXECUTE_RECOVERY_ATTEMPTS,
+    _EXECUTE_ENGINE_ONLY,
     _EXECUTE_UX_BATCH_MAX,
     _EXPLORE_RATIO,
+    _EXPLORE_NON_NAVIGABLE_STREAK_LIMIT,
     _FOREGROUND_STUCK_SURFACES,
     _LLM_TEMPERATURE_RUNTIME,
     _NAV_DIGEST_MAX_SCREENS,
@@ -86,6 +115,7 @@ from .config import (
     _PRIMARY_UX_BLEND_AFTER_POST_NAV_MIN_SEC,
     _PRIMARY_UX_BLEND_AFTER_POST_NAV_RATIO,
     _PRIMARY_UX_BLEND_MIN_GOAL_INDEX_FOR_TIME,
+    _PRIMARY_UX_SPARSE_GOALS_THRESHOLD,
     _PRIMARY_UX_FALLBACK,
     _PRIMARY_UX_MIN_WINDOW_SEC,
     _REPETITION_GUARD_USE_BACK,
@@ -102,8 +132,11 @@ from .config import (
     _STICKY_FOREGROUND,
     _USE_GOAL_PLAN,
     _effective_primary_blend_after_sec,
+    _effective_primary_blend_goal_index,
     _explore_until_seconds,
+    _primary_blend_after_sec_for_goals,
 )
+from safety.device_guard import raise_if_watchdog_failed
 
 
 def run_llm_agent_session(
@@ -114,9 +147,10 @@ def run_llm_agent_session(
     ollama_model: str,
     ollama_endpoint: str,
     timeout_sec: int | None = None,
+    healthcheck_cb: Any | None = None,
 ) -> dict[str, Any]:
     action_log = output_dir / f"{app_context['package_name']}_llm_actions.jsonl"
-    started = time.time()
+    session_wall_started = time.time()
     actions: list[dict[str, Any]] = []
     last_failed_signature = ""
     failed_once = set()
@@ -138,7 +172,7 @@ def run_llm_agent_session(
     all_ux_goals_done = False
     ux_goal_routes: list[dict[str, Any]] = []
     goal_blocked_turns = 0
-    bfs_back_streak = 0
+    explore_non_navigable_streak = 0
     post_nav_execute_started: float | None = None
     root_screen_hash = ""
     root_screen_signature = ""
@@ -148,6 +182,7 @@ def run_llm_agent_session(
     root_handoff_done = False
     empty_execute_recovery_count = 0
     invalid_target_count = 0
+    execute_planner_failure_streak = 0
     last_active_nav_token = ""
     simulation_status = "not_started"
     simulation_status_detail = "no_execute_actions"
@@ -179,6 +214,8 @@ def run_llm_agent_session(
         except (urllib.error.URLError, json.JSONDecodeError, TimeoutError):
             planner_model_info = {"model": planner_model}
 
+    pkg = str(app_context["package_name"])
+    frida_log_path = output_dir / f"{pkg}_frida.jsonl"
     ux_goals: list[str] | None = None
     ux_goal_idx = 0
     execute_replan_alert = ""
@@ -198,19 +235,10 @@ def run_llm_agent_session(
     exploration_digest: dict[str, str] = {}
     nav_visited_counts: dict[str, int] = {}
     nav_transitions: list[dict[str, Any]] = []
-    nav_graph: dict[str, Any] = {"targets": {}, "edges": []}
-    nav_frontier_queue: list[str] = []
-    nav_attempted: set[str] = set()
-    nav_key_to_action: dict[str, dict[str, Any]] = {}
-    nav_defer_counts: dict[str, int] = {}
-    tab_frontier_queue: list[str] = []
-    tab_attempted: set[str] = set()
-    tab_key_to_action: dict[str, dict[str, Any]] = {}
-    tab_cycle_keys: list[str] = []
-    tab_cycle_index = 0
-    pending_interior_expand = 0
-    bfs_dialog_dismissed_tokens: set[str] = set()
-    bfs_permission_risk_keys_attempted: set[str] = set()
+    explore_state = ExploreState()
+    explore_strategy = DEFAULT_EXPLORE_STRATEGY
+    nav_graph = explore_state.nav_graph
+    bfs_expand_stall_by_screen: dict[str, int] = {}
     nav_plan_ready = not _NAV_FIRST_PIPELINE
     explore_until_sec = _explore_until_seconds(duration_sec)
     primary_blend_after_sec = _effective_primary_blend_after_sec(duration_sec)
@@ -252,6 +280,7 @@ def run_llm_agent_session(
     foreground_recoveries = 0
     max_foreground_recoveries = 48
     foreign_dialog_streak = 0
+    foreground_mismatch_streak = 0
     seen_hashes: set[str] = set()
     audit_path_obj: Path | None = None
     audit_f: IO[str] | None = None
@@ -272,6 +301,12 @@ def run_llm_agent_session(
         audit_f.flush()
 
     root_reference = _capture_execute_root_reference(adb_bin, pkg)
+    simulation_started = time.time()
+    infra_setup_sec = simulation_started - session_wall_started
+    logging.info(
+        "Simulation timer started after root capture (infra_setup_sec=%.1f).",
+        infra_setup_sec,
+    )
     if root_reference.get("ok"):
         root_screen_hash = str(root_reference.get("screen_hash") or "")
         root_screen_signature = str(root_reference.get("root_signature") or "")
@@ -293,21 +328,57 @@ def run_llm_agent_session(
     try:
         with action_log.open("w", encoding="utf-8") as out:
             while True:
-                elapsed = time.time() - started
+                elapsed = time.time() - simulation_started
                 if elapsed >= duration_sec:
                     break
-                if elapsed >= max_runtime:
+                if time.time() - session_wall_started >= max_runtime:
                     status = "partial:timeout"
                     break
+                now = time.time()
+                raise_if_watchdog_failed()
+                if healthcheck_cb is not None:
+                    # Healthcheck failures are part of session quality semantics.
+                    # Let caller-defined callback raise so the run can be classified
+                    # explicitly rather than silently continuing with dead telemetry.
+                    healthcheck_cb()
                 if (
                     _STICKY_FOREGROUND
                     and foreground_recoveries < max_foreground_recoveries
                     and _recover_foreground_if_needed(adb_bin, pkg)
                 ):
                     foreground_recoveries += 1
+                    foreground_mismatch_streak = 0
                     stagnant = 0
                     last_hash = ""
                 fg_now = _foreground_package(adb_bin)
+                if strict_foreground_enabled():
+                    if not _foreground_acceptable(pkg, fg_now):
+                        recovered_fg = False
+                        if (
+                            _STICKY_FOREGROUND
+                            and foreground_recoveries < max_foreground_recoveries
+                        ):
+                            recovered_fg = _attempt_foreground_recovery_before_abort(
+                                adb_bin, pkg, fg=fg_now
+                            )
+                            if recovered_fg:
+                                foreground_recoveries += 1
+                                foreground_mismatch_streak = 0
+                                stagnant = 0
+                                last_hash = ""
+                                continue
+                        foreground_mismatch_streak += 1
+                        if foreground_mismatch_streak >= foreground_mismatch_limit():
+                            logging.error(
+                                "Foreground mismatch persisted (%s steps, fg=%s target=%s); stopping session.",
+                                foreground_mismatch_streak,
+                                fg_now or "<unknown>",
+                                pkg,
+                            )
+                            status = "partial:foreground_mismatch"
+                            break
+                    else:
+                        foreground_mismatch_streak = 0
                 if (
                     fg_now
                     and fg_now != pkg
@@ -337,6 +408,7 @@ def run_llm_agent_session(
                     )
                     _bring_target_foreground(adb_bin, pkg)
                     foreground_recoveries += 1
+                    foreground_mismatch_streak = 0
                     foreign_dialog_streak = 0
                     stagnant = 0
                     last_hash = ""
@@ -356,6 +428,7 @@ def run_llm_agent_session(
                         )
                         _bring_target_foreground(adb_bin, pkg)
                         foreground_recoveries += 1
+                        foreground_mismatch_streak = 0
                         foreign_dialog_streak = 0
                         stagnant = 0
                         last_hash = ""
@@ -425,7 +498,7 @@ def run_llm_agent_session(
                     and all_ux_goals_done
                     and ux_goals is not None
                     and len(ux_goals) > 0
-                    and (time.time() - started) < duration_sec - 5
+                    and (time.time() - simulation_started) < duration_sec - 5
                 ):
                     digest_txt_plan = _format_navigation_digest(exploration_digest)
                     primary_fallback_spec = _plan_primary_app_ux(
@@ -461,7 +534,7 @@ def run_llm_agent_session(
                         and not primary_fallback_active
                         and not primary_stuck_escape_used
                         and nav_plan_ready
-                        and (time.time() - started) < duration_sec - 10
+                        and (time.time() - simulation_started) < duration_sec - 10
                     ):
                         primary_stuck_escape_used = True
                         stagnant = 0
@@ -500,7 +573,11 @@ def run_llm_agent_session(
                             "Post-explore goal planning skipped (%.1fs past explore budget); using digest templates.",
                             plan_slack_sec,
                         )
-                        ux_goals = _finalize_post_explore_goals([], digest_txt_plan)
+                        ux_goals = _finalize_post_explore_goals(
+                            [],
+                            digest_txt_plan,
+                            supplemental_goals=_tap_goals_from_nav_graph(nav_graph),
+                        )
                     else:
                         ux_goals = _plan_execution_goals_from_digest(
                             app_context,
@@ -509,6 +586,7 @@ def run_llm_agent_session(
                             + json.dumps(nav_transitions[-120:], ensure_ascii=False),
                             planner_model,
                             ollama_endpoint,
+                            nav_graph=nav_graph,
                         )
                     ux_goal_routes = _build_route_aware_goals(ux_goals, nav_graph, exploration_digest)
                     nav_plan_ready = True
@@ -623,19 +701,22 @@ def run_llm_agent_session(
                         )
                         empty_execute_recovery_count += 1
                         logging.warning(
-                            "Execute saw empty hierarchy; recovery attempt %d/%d via %s -> %s.",
+                            "Execute saw empty hierarchy; recovery attempt %d/%d via %s -> %s (ok=%s elements=%d).",
                             empty_execute_recovery_count,
                             _EMPTY_EXECUTE_RECOVERY_ATTEMPTS,
                             rec.get("reason"),
                             rec.get("screen_reason"),
+                            rec.get("ok"),
+                            len(rec.get("elements") or []),
                         )
-                        if rec.get("ok"):
+                        if rec.get("ok") and rec.get("elements"):
                             elements = list(rec.get("elements") or [])
                             raw_xml = str(rec.get("raw_xml") or "")
                             screen_hash = str(rec.get("screen_hash") or _screen_hash(elements))
                             stagnant = 0
                             last_hash = ""
                             recovered = True
+                            empty_execute_recovery_count = 0
                             simulation_status_detail = "empty_execute_recovered"
                             if (
                                 screen_hash
@@ -645,7 +726,7 @@ def run_llm_agent_session(
                                 exploration_digest[screen_hash] = _screen_digest_hint(elements)
                             break
                     if not recovered:
-                        status = f"partial:{PARTIAL_BAD_HANDOFF}"
+                        status = f"partial:{PARTIAL_EMPTY_EXECUTE}"
                         simulation_status = "failed:empty_execute_hierarchy"
                         simulation_status_detail = "empty_execute_recovery_exhausted"
                         logging.warning(
@@ -695,22 +776,24 @@ def run_llm_agent_session(
                     and ux_goals
                     and len(ux_goals) > 0
                     and not all_ux_goals_done
-                    and (time.time() - started) < duration_sec - 5
+                    and (time.time() - simulation_started) < duration_sec - 5
                 ):
                     if post_nav_execute_started is None:
                         post_nav_execute_started = time.time()
                     pn_elapsed = time.time() - post_nav_execute_started
-                    goal_hit = ux_goal_idx >= _PRIMARY_UX_BLEND_AFTER_GOAL_INDEX
-                    time_hit = (
-                        primary_blend_after_sec > 0
-                        and pn_elapsed >= primary_blend_after_sec
+                    forward_goal_count = sum(1 for g in ux_goals if _goal_is_forward(g))
+                    blend_goal_index = _effective_primary_blend_goal_index(forward_goal_count)
+                    blend_after_sec = _primary_blend_after_sec_for_goals(
+                        duration_sec, forward_goal_count
                     )
+                    goal_hit = ux_goal_idx >= blend_goal_index
+                    time_hit = blend_after_sec > 0 and pn_elapsed >= blend_after_sec
                     if (
                         time_hit
                         and ux_goal_idx < _PRIMARY_UX_BLEND_MIN_GOAL_INDEX_FOR_TIME
                     ):
                         time_hit = False
-                    remaining_sec = max(0.0, float(duration_sec) - (time.time() - started))
+                    remaining_sec = max(0.0, float(duration_sec) - (time.time() - simulation_started))
                     if (goal_hit or time_hit) and remaining_sec < _PRIMARY_UX_MIN_WINDOW_SEC:
                         goal_hit = False
                         time_hit = False
@@ -720,10 +803,12 @@ def run_llm_agent_session(
                             app_context, digest_txt_plan, planner_model, ollama_endpoint
                         )
                         bits: list[str] = []
+                        if forward_goal_count < _PRIMARY_UX_SPARSE_GOALS_THRESHOLD:
+                            bits.append(f"sparse_goals<{_PRIMARY_UX_SPARSE_GOALS_THRESHOLD}")
                         if goal_hit:
-                            bits.append(f"goal_index>={_PRIMARY_UX_BLEND_AFTER_GOAL_INDEX}")
+                            bits.append(f"goal_index>={blend_goal_index}")
                         if time_hit:
-                            bits.append(f"post_nav_sec>={primary_blend_after_sec:.0f}")
+                            bits.append(f"post_nav_sec>={blend_after_sec:.0f}")
                         primary_fallback_reason = (
                             "post_nav_realism_blend:" + "+".join(bits) if bits else "post_nav_realism_blend"
                         )
@@ -741,208 +826,65 @@ def run_llm_agent_session(
 
                 # Deterministic BFS-style navigation (no LLM control) during explore phase.
                 if exploring_phase and not primary_fallback_active:
-                    chosen: dict[str, Any] | None = None
-                    # Back in-app with no permission overlay → allow a fresh one-shot on next dialog.
-                    dialog_state = _derive_dialog_state(fg_now, elements, pkg)
-                    if fg_now == pkg and not bool(dialog_state.get("visible")):
-                        bfs_dialog_dismissed_tokens.clear()
-
-                    dialog_token = str(dialog_state.get("token") or "")
-                    chosen = _dialog_policy_action(
-                        dialog_state,
-                        elements,
-                        pkg,
-                        bfs_dialog_dismissed_tokens,
+                    explore_pick = explore_strategy.pick_action(
+                        ExploreTurnInput(
+                            elements=elements,
+                            pkg=pkg,
+                            screen_hash=screen_hash,
+                            fg_now=fg_now,
+                        ),
+                        explore_state,
                     )
+                    explore_state = explore_pick.state
+                    chosen = explore_pick.action
+                    nav_cands = explore_pick.nav_cands
+                    other_cands = explore_pick.other_cands
+                    expand_cands = explore_pick.expand_cands
+                    tab_cands = explore_pick.tab_cands
+                    dialog_token = explore_pick.dialog_token
+                    nav_key_to_action = explore_state.nav_key_to_action
+                    tab_key_to_action = explore_state.tab_key_to_action
 
-                    nav_cands, other_cands = _build_bfs_candidates(elements)
-                    tab_cands = _build_tab_targets(elements)
-                    expand_cands = _bfs_filter_expand_candidates(
-                        other_cands, pkg, bfs_permission_risk_keys_attempted
+                    chosen_reason_pre = str(chosen.get("reason") or "") if chosen else ""
+                    chosen_at_pre = str(chosen.get("action_type") or "") if chosen else ""
+                    is_empty_hierarchy = (
+                        not elements
+                        or str(app_state.get("screen_role") or "") == "empty_hierarchy"
                     )
-                    _nav_graph_register_candidates(
-                        nav_graph,
-                        screen_hash,
-                        tab_cands,
-                        candidate_kind="tab",
-                        target_pkg=pkg,
-                    )
-                    _nav_graph_register_candidates(
-                        nav_graph,
-                        screen_hash,
-                        nav_cands,
-                        candidate_kind="nav",
-                        target_pkg=pkg,
-                    )
-                    visible_nav_keys: list[str] = []
-                    visible_tab_keys: list[str] = []
-                    for c in tab_cands:
-                        k = _nav_target_key(c)
-                        tab_key_to_action[k] = dict(c)
-                        visible_tab_keys.append(k)
-                        if _action_is_foreign_dialog_widget(c, pkg):
-                            continue
-                        if (
-                            k not in tab_cycle_keys
-                            and not _action_is_search_like(c)
-                            and not _action_is_back_like(c)
-                        ):
-                            tab_cycle_keys.append(k)
-                        if k not in tab_frontier_queue and k not in tab_attempted:
-                            tab_frontier_queue.append(k)
-
-                    # If we just switched tabs, spend at least one turn trying to enter tab content.
-                    if chosen is None and pending_interior_expand > 0:
-                        interior = _first_non_foreign_bfs_candidate(expand_cands, pkg)
-                        if interior:
-                            chosen = interior
-                            chosen["reason"] = "bfs_expand_after_tab_switch"
-                            pending_interior_expand -= 1
-                        else:
-                            pending_interior_expand = 0
-
-                    # Tier 1: graph coverage over visible semantic nav targets.
-                    if chosen is None:
-                        chosen = _nav_graph_pick_uncovered_visible(
-                            nav_graph,
-                            tab_cands,
-                            candidate_kind="tab",
-                            target_pkg=pkg,
-                        )
-                    if chosen is None:
-                        chosen = _nav_graph_pick_uncovered_visible(
-                            nav_graph,
-                            nav_cands,
-                            candidate_kind="nav",
-                            target_pkg=pkg,
-                        )
-
-                    # Tier 2: strict tab-frontier BFS before anything else.
-                    if chosen is None and tab_frontier_queue:
-                        for _ in range(len(tab_frontier_queue)):
-                            k = tab_frontier_queue.pop(0)
-                            if _nav_key_is_foreign_dialog(k, pkg):
-                                continue
-                            if k in visible_tab_keys:
-                                chosen = dict(tab_key_to_action[k])
-                                chosen["reason"] = "bfs_tab_frontier"
-                                tab_attempted.add(k)
-                                break
-                            # keep pending until it becomes visible again
-                            tab_frontier_queue.append(k)
-
-                    for c in nav_cands:
-                        k = _nav_target_key(c)
-                        nav_key_to_action[k] = dict(c)
-                        visible_nav_keys.append(k)
-                        if _action_is_foreign_dialog_widget(c, pkg):
-                            continue
-                        if k not in nav_frontier_queue and k not in nav_attempted:
-                            nav_frontier_queue.append(k)
-
-                    # Drop foreign dialog keys from persistent BFS memory (keep off-screen app tabs).
-                    tab_cycle_keys[:] = [
-                        k for k in tab_cycle_keys if not _nav_key_is_foreign_dialog(k, pkg)
-                    ]
-                    tab_frontier_queue[:] = [
-                        k for k in tab_frontier_queue if not _nav_key_is_foreign_dialog(k, pkg)
-                    ]
-                    nav_frontier_queue[:] = [
-                        k for k in nav_frontier_queue if not _nav_key_is_foreign_dialog(k, pkg)
-                    ]
-
-                    # Strict BFS over navigation targets: pop the oldest queued visible key.
-                    if chosen is None and nav_frontier_queue:
-                        for _ in range(len(nav_frontier_queue)):
-                            k = nav_frontier_queue.pop(0)
-                            if _nav_key_is_foreign_dialog(k, pkg):
-                                continue
-                            if k in visible_nav_keys:
-                                chosen = dict(nav_key_to_action[k])
-                                chosen["reason"] = "bfs_nav_frontier"
-                                nav_attempted.add(k)
-                                nav_defer_counts.pop(k, None)
-                                break
-                            nav_defer_counts[k] = nav_defer_counts.get(k, 0) + 1
-                            # Keep deferred targets in queue for when we return to a hub-like screen.
-                            if nav_defer_counts[k] <= 5:
-                                nav_frontier_queue.append(k)
-
-                    # If queue has no visible key this turn, still prefer visible non-search nav taps over back.
-                    if chosen is None and nav_cands:
-                        for c in nav_cands:
-                            k = _nav_target_key(c)
-                            if _action_is_foreign_dialog_widget(c, pkg):
-                                continue
-                            if k not in nav_attempted and not _action_is_search_like(c):
-                                chosen = dict(c)
-                                chosen["reason"] = "bfs_nav_visible_fallback"
-                                nav_attempted.add(k)
-                                break
-                    # Tier 3: generic frontier expansion (skip repeat permission-risk triggers).
-                    if chosen is None:
-                        for c in expand_cands:
-                            chosen = dict(c)
-                            chosen["reason"] = "bfs_expand_frontier"
+                    is_recovery_step = chosen_at_pre in {"back", "wait"} and chosen_reason_pre in {
+                        "bfs_return_to_hub",
+                        "bfs_avoid_back_loop",
+                    }
+                    if is_recovery_step and is_empty_hierarchy:
+                        explore_non_navigable_streak += 1
+                        if explore_non_navigable_streak >= _EXPLORE_NON_NAVIGABLE_STREAK_LIMIT:
+                            status = f"partial:{PARTIAL_EXPLORE_NON_NAVIGABLE}"
+                            simulation_status = "failed:explore_non_navigable"
+                            simulation_status_detail = (
+                                f"empty_hierarchy_recovery_streak={explore_non_navigable_streak} "
+                                f"at_explore_step={step_idx + 1}"
+                            )
+                            logging.warning(
+                                "Explore non-navigable: %d consecutive empty-hierarchy recovery steps "
+                                "(limit=%d); aborting session for %s.",
+                                explore_non_navigable_streak,
+                                _EXPLORE_NON_NAVIGABLE_STREAK_LIMIT,
+                                pkg,
+                            )
                             break
-                    if (
-                        chosen is None
-                        and _hierarchy_shows_permission_dialog(elements, pkg)
-                        and bfs_back_streak < 1
-                    ):
-                        chosen = {"action_type": "back", "reason": "bfs_leave_permission_overlay"}
-
-                    # Tier 4: revisit non-search nav targets after frontier exhaustion (visible only).
-                    if chosen is None and tab_cycle_keys:
-                        for off in range(len(tab_cycle_keys)):
-                            idx = (tab_cycle_index + off) % len(tab_cycle_keys)
-                            k = tab_cycle_keys[idx]
-                            if k not in visible_tab_keys and k not in visible_nav_keys:
-                                continue
-                            base = tab_key_to_action.get(k) or nav_key_to_action.get(k)
-                            if not base:
-                                continue
-                            chosen = dict(base)
-                            chosen["reason"] = "bfs_nav_cycle_after_exhaust"
-                            tab_cycle_index = (idx + 1) % len(tab_cycle_keys)
-                            break
-                    if chosen is None and nav_cands:
-                        for c in nav_cands:
-                            if _action_is_foreign_dialog_widget(c, pkg):
-                                continue
-                            if not _action_is_search_like(c) and not _action_is_back_like(c):
-                                chosen = dict(c)
-                                chosen["reason"] = "bfs_nav_cycle_after_exhaust"
-                                break
-                    # Tier 5: search/FAB only after non-search revisit cycle is unavailable.
-                    if chosen is None and nav_cands:
-                        for c in nav_cands:
-                            if _action_is_search_like(c):
-                                chosen = dict(c)
-                                chosen["reason"] = "bfs_search_after_frontier"
-                                break
-                    if chosen is None and nav_cands:
-                        for c in nav_cands:
-                            if not _action_is_foreign_dialog_widget(c, pkg):
-                                chosen = dict(c)
-                                chosen["reason"] = "bfs_nav_cycle_after_exhaust"
-                                break
-
-                    if chosen is None:
-                        # Back only as final recovery.
-                        if bfs_back_streak >= 1:
-                            chosen = {"action_type": "wait", "reason": "bfs_avoid_back_loop"}
-                        else:
-                            chosen = {"action_type": "back", "reason": "bfs_return_to_hub"}
+                    elif not is_recovery_step or not is_empty_hierarchy:
+                        explore_non_navigable_streak = 0
 
                     sig = _action_signature_for_candidate(chosen)
+                    frida_pre_offset = frida_log_byte_offset(frida_log_path)
+                    action_start_ms = int(time.time() * 1000)
                     ok, outcome = _execute_action(adb_bin, chosen, elements)
                     if (
                         str(chosen.get("reason") or "") in ("bfs_system_dialog_dismiss", "dialog_policy_recover_to_target")
                         and dialog_token
                         and ok
                     ):
-                        bfs_dialog_dismissed_tokens.add(dialog_token)
+                        explore_state.bfs_dialog_dismissed_tokens.add(dialog_token)
                     if str(chosen.get("reason") or "") in ("bfs_system_dialog_dismiss", "dialog_policy_recover_to_target"):
                         if _AUDIT_POST_ACTION_SLEEP_SEC > 0:
                             time.sleep(_AUDIT_POST_ACTION_SLEEP_SEC)
@@ -950,7 +892,7 @@ def run_llm_agent_session(
                             _bring_target_foreground(adb_bin, pkg)
                             for act in list(tab_key_to_action.values()) + list(nav_key_to_action.values()):
                                 if _action_is_permission_risk(act):
-                                    bfs_permission_risk_keys_attempted.add(_nav_target_key(act))
+                                    explore_state.bfs_permission_risk_keys_attempted.add(_nav_target_key(act))
                         else:
                             subprocess.run(
                                 [adb_bin, "shell", "input", "keyevent", "KEYCODE_BACK"],
@@ -958,26 +900,13 @@ def run_llm_agent_session(
                                 capture_output=True,
                                 timeout=8,
                             )
-                    # After tab switches, force one interior expansion turn to avoid endless tab-only ping-pong.
-                    if str(chosen.get("action_type")) == "tap":
-                        rr = str(chosen.get("reason") or "")
-                        rid = str(chosen.get("target_resource_id") or "").lower()
-                        cd = str(chosen.get("target_content_desc") or "").lower()
-                        if (
-                            rr in (
-                                "bfs_tab_frontier",
-                                "bfs_nav_cycle_after_exhaust",
-                                "bfs_nav_visible_fallback",
-                            )
-                            and not _action_is_search_like(chosen)
-                            and not _action_is_back_like(chosen)
-                            and any(k in f"{rid} {cd}" for k in ("categories", "latest", "nearby", "updates", "settings", "explore", "home"))
-                        ):
-                            pending_interior_expand = 1
+                    # After hub/tab entry, drill N turns into interior content before cycling tabs again.
+                    if chosen is not None and _bfs_tap_triggers_interior_expand(chosen):
+                        explore_state.pending_interior_expand = _BFS_INTERIOR_EXPAND_BUDGET
                     if str(chosen.get("action_type")) == "back":
-                        bfs_back_streak += 1
+                        explore_state.bfs_back_streak += 1
                     else:
-                        bfs_back_streak = 0
+                        explore_state.bfs_back_streak = 0
                     if not ok:
                         failed_once.add(sig)
                     if _POST_ACTION_SETTLE_SEC > 0:
@@ -1003,8 +932,42 @@ def run_llm_agent_session(
                         screen_hash_after=hash_after,
                         elements_after=el_after,
                         target_pkg=pkg,
-                        attempted=bfs_permission_risk_keys_attempted,
+                        attempted=explore_state.bfs_permission_risk_keys_attempted,
                     )
+                    chosen_reason_early = str(chosen.get("reason") or "")
+                    if chosen_reason_early == "bfs_text_entry_probe":
+                        explore_state.bfs_text_entry_probed_keys.add(
+                            _text_entry_probe_field_key(screen_hash, chosen)
+                        )
+                    bfs_expand_stall_event: dict[str, Any] | None = None
+                    if chosen_reason_early.startswith("bfs_expand_"):
+                        if ok and hash_after and hash_after != screen_hash:
+                            bfs_expand_stall_by_screen.pop(screen_hash, None)
+                        else:
+                            stalls = bfs_expand_stall_by_screen.get(screen_hash, 0) + 1
+                            if stalls >= _BFS_EXPAND_STALL_LIMIT_PER_SCREEN:
+                                tried = explore_state.bfs_expand_tried_on_screen.setdefault(screen_hash, set())
+                                stalled_key = _nav_target_key(chosen)
+                                tried.add(stalled_key)
+                                keys_marked = 1
+                                bfs_expand_stall_by_screen[screen_hash] = 0
+                                bfs_expand_stall_event = {
+                                    "screen_hash": screen_hash,
+                                    "stall_count": stalls,
+                                    "keys_marked": keys_marked,
+                                    "marked_keys": [stalled_key],
+                                    "expand_cands_on_screen": len(expand_cands),
+                                    "mark_mode": "tried_key_only",
+                                }
+                                logging.info(
+                                    "BFS expand stall limit on screen %s (stall=%d); marked 1 tried key, "
+                                    "%d expand cands remain eligible.",
+                                    screen_hash[:16],
+                                    stalls,
+                                    len(expand_cands),
+                                )
+                            else:
+                                bfs_expand_stall_by_screen[screen_hash] = stalls
                     if hash_after and hash_after not in exploration_digest and len(exploration_digest) < _NAV_DIGEST_MAX_SCREENS:
                         exploration_digest[hash_after] = _screen_digest_hint(el_after)
                     chosen_key = _nav_target_key(chosen)
@@ -1047,6 +1010,17 @@ def run_llm_agent_session(
                         }
                     )
                     step_idx += 1
+                    recovery_step = is_explore_recovery_action(chosen)
+                    explore_instrumentation = build_explore_candidate_instrumentation(
+                        elements,
+                        nav_cands,
+                        other_cands,
+                        expand_cands,
+                        tab_cands,
+                        screen_hash=screen_hash,
+                        recovery_step=recovery_step,
+                    )
+                    explore_tier_index = explore_tier_index_for_reason(str(chosen.get("reason") or ""))
                     event = {
                         "step": step_idx,
                         "ts_epoch_ms": int(time.time() * 1000),
@@ -1072,6 +1046,20 @@ def run_llm_agent_session(
                         "batch_index": 0,
                         "batch_size": 1,
                     }
+                    event.update(explore_instrumentation)
+                    if explore_tier_index is not None:
+                        event["explore_tier_index"] = explore_tier_index
+                    if bfs_expand_stall_event is not None:
+                        event["bfs_expand_stall_event"] = bfs_expand_stall_event
+                    if str(chosen.get("action_type") or "") == "input":
+                        event["explore_input_effective"] = explore_input_effective_after_action(
+                            action_success=ok,
+                            screen_hash=screen_hash,
+                            screen_hash_after=hash_after,
+                            frida_log_path=frida_log_path,
+                            frida_pre_offset=frida_pre_offset,
+                            action_start_ms=action_start_ms,
+                        )
                     out.write(json.dumps(event, ensure_ascii=False) + "\n")
                     out.flush()
                     actions.append(event)
@@ -1156,6 +1144,35 @@ def run_llm_agent_session(
                         ]
                         raw = json.dumps({"actions": batch_actions}, ensure_ascii=False)
                         engine_planned_execute = True
+                    elif execute_planner_failure_streak >= 2:
+                        route_pre = _route_controller_action_for_goal(
+                            active_goal_route_for_controller,
+                            nav_graph,
+                            app_state,
+                            elements,
+                            pkg,
+                            recent_actions=actions,
+                        )
+                        if route_pre is None and goal_blocked_turns >= 2:
+                            route_pre = {
+                                "action_type": "advance_goal",
+                                "reason": "engine_prose_spiral_skip_blocked",
+                            }
+                        if route_pre is None:
+                            route_pre = {
+                                "action_type": "advance_goal",
+                                "reason": "engine_prose_spiral_skip_unroutable",
+                            }
+                        if route_pre is not None:
+                            logging.info(
+                                "Skipping Ollama execute turn after %d planner failures; using %s.",
+                                execute_planner_failure_streak,
+                                route_pre.get("reason"),
+                            )
+                            batch_actions = [route_pre]
+                            raw = json.dumps({"actions": batch_actions}, ensure_ascii=False)
+                            engine_planned_execute = True
+                            execute_planner_failure_streak = 0
                     else:
                         route_pre = _route_controller_action_for_goal(
                             active_goal_route_for_controller,
@@ -1169,6 +1186,34 @@ def run_llm_agent_session(
                             batch_actions = [route_pre]
                             raw = json.dumps({"actions": batch_actions}, ensure_ascii=False)
                             engine_planned_execute = True
+                        elif (
+                            _NAV_FIRST_PIPELINE
+                            and _EXECUTE_ENGINE_ONLY
+                        ):
+                            active_goal = (
+                                ux_goals[ux_goal_idx]
+                                if 0 <= ux_goal_idx < len(ux_goals)
+                                else ""
+                            )
+                            route_pre = _execute_engine_fallback_action(
+                                active_goal_route_for_controller,
+                                active_goal,
+                                nav_graph,
+                                app_state,
+                                elements,
+                                pkg,
+                                goal_status=goal_status,
+                                goal_blocked_turns=goal_blocked_turns,
+                                recent_actions=actions,
+                            )
+                            logging.info(
+                                "Execute engine-only fallback (no Ollama): %s",
+                                route_pre.get("reason"),
+                            )
+                            batch_actions = [route_pre]
+                            raw = json.dumps({"actions": batch_actions}, ensure_ascii=False)
+                            engine_planned_execute = True
+                            execute_planner_failure_streak = 0
 
                 if engine_planned_execute:
                     prompt_hash = hashlib.sha256(
@@ -1193,18 +1238,110 @@ def run_llm_agent_session(
                 if not batch_actions:
                     batch_actions = _parse_actions_list(raw, max_actions=batch_limit)
                 if (
+                    pipeline_phase == "execute"
+                    and not primary_fallback_active
+                    and not exploring_phase
+                    and ux_goals
+                    and batch_actions
+                    and _NAV_FIRST_PIPELINE
+                    and _EXECUTE_ENGINE_ONLY
+                    and all(
+                        str(a.get("action_type")) == "wait"
+                        and (
+                            str(a.get("reason") or "").startswith("planner_contract_")
+                            or str(a.get("reason") or "") == "planner_target_not_visible"
+                            or str(a.get("reason") or "") == "ollama_error"
+                        )
+                        for a in batch_actions
+                    )
+                ):
+                    active_goal = (
+                        ux_goals[ux_goal_idx] if 0 <= ux_goal_idx < len(ux_goals) else ""
+                    )
+                    batch_actions = [
+                        _execute_engine_fallback_action(
+                            active_goal_route_for_controller,
+                            active_goal,
+                            nav_graph,
+                            app_state,
+                            elements,
+                            pkg,
+                            goal_status=goal_status,
+                            goal_blocked_turns=goal_blocked_turns,
+                            recent_actions=actions,
+                        )
+                    ]
+                    execute_planner_failure_streak = 0
+                if (
+                    pipeline_phase == "execute"
+                    and not primary_fallback_active
+                    and not exploring_phase
+                    and ux_goals
+                    and batch_actions
+                ):
+                    planner_failed = all(
+                        str(a.get("action_type")) == "wait"
+                        and (
+                            str(a.get("reason") or "").startswith("planner_contract_")
+                            or str(a.get("reason") or "") == "planner_target_not_visible"
+                        )
+                        for a in batch_actions
+                    )
+                    if planner_failed:
+                        execute_planner_failure_streak += 1
+                    elif not all(str(a.get("action_type")) == "wait" for a in batch_actions):
+                        execute_planner_failure_streak = 0
+                    if execute_planner_failure_streak >= 2 and not engine_planned_execute:
+                        recovery = _route_controller_action_for_goal(
+                            active_goal_route_for_controller,
+                            nav_graph,
+                            app_state,
+                            elements,
+                            pkg,
+                            recent_actions=actions,
+                        )
+                        if recovery is None and goal_status == "satisfied":
+                            recovery = {
+                                "action_type": "advance_goal",
+                                "reason": "engine_prose_spiral_advance_satisfied",
+                            }
+                        elif recovery is None and goal_blocked_turns >= 2:
+                            recovery = {
+                                "action_type": "advance_goal",
+                                "reason": "engine_prose_spiral_skip_blocked",
+                            }
+                        elif recovery is None:
+                            recovery = {
+                                "action_type": "advance_goal",
+                                "reason": "engine_prose_spiral_skip_unroutable",
+                            }
+                        if recovery is not None:
+                            logging.info(
+                                "Execute prose-spiral recovery after %d planner failures: %s",
+                                execute_planner_failure_streak,
+                                recovery.get("reason"),
+                            )
+                            batch_actions = [recovery]
+                            execute_planner_failure_streak = 0
+                if (
                     ux_goals
                     and not primary_fallback_active
                     and not exploring_phase
                     and goal_status == "satisfied"
                     and 0 <= ux_goal_idx < len(ux_goals)
                 ):
-                    batch_actions = [
-                        {
-                            "action_type": "advance_goal",
-                            "reason": "engine_goal_status_satisfied",
-                        }
-                    ]
+                    active_goal_for_advance = ux_goals[ux_goal_idx]
+                    if _goal_needs_text_entry_field(active_goal_for_advance) and not _typing_goal_recently_satisfied(
+                        actions
+                    ):
+                        goal_status = "feasible"
+                    else:
+                        batch_actions = [
+                            {
+                                "action_type": "advance_goal",
+                                "reason": "engine_goal_status_satisfied",
+                            }
+                        ]
                 elif (
                     ux_goals
                     and not primary_fallback_active
@@ -1272,7 +1409,7 @@ def run_llm_agent_session(
                 duration_hit_outer = False
                 batch_start_hash = screen_hash
                 for bi, action in enumerate(batch_actions):
-                    elapsed_inner = time.time() - started
+                    elapsed_inner = time.time() - simulation_started
                     if elapsed_inner >= duration_sec:
                         duration_hit_outer = True
                         break
@@ -1307,6 +1444,7 @@ def run_llm_agent_session(
                             elements,
                             ux_goals=None if primary_fallback_active else ux_goals,
                             ux_goal_idx=ux_goal_idx,
+                            target_pkg=pkg,
                         )
                         if (
                             not exploring_phase
@@ -1398,6 +1536,7 @@ def run_llm_agent_session(
                         and not str(action.get("reason") or "").startswith("planner_contract_")
                         and action.get("action_type") not in ("advance_goal", "swipe")
                         and not str(action.get("reason") or "").startswith("engine_route_")
+                        and not str(action.get("reason") or "").startswith("engine_fallback_")
                         and recent_signatures.count(proposal_signature) >= _REP_THR
                         and recent_progress < 5
                     ):
@@ -1413,7 +1552,7 @@ def run_llm_agent_session(
                             pkg,
                             tap_rotate=primary_ux_tap_pick_index,
                         )
-                    if not exploring_phase:
+                    if not exploring_phase and not primary_fallback_active:
                         action = _guard_planner_action(
                             action, elements, pkg, strict_visible_tap=True
                         )
@@ -1439,8 +1578,24 @@ def run_llm_agent_session(
                                 pkg,
                                 recent_actions=actions,
                             )
-                            if contract_route is not None:
-                                action = contract_route
+                            if contract_route is None:
+                                active_goal = (
+                                    ux_goals[ux_goal_idx]
+                                    if 0 <= ux_goal_idx < len(ux_goals)
+                                    else ""
+                                )
+                                contract_route = _execute_engine_fallback_action(
+                                    active_goal_route_for_controller,
+                                    active_goal,
+                                    nav_graph,
+                                    app_state,
+                                    elements,
+                                    pkg,
+                                    goal_status=goal_status,
+                                    goal_blocked_turns=goal_blocked_turns,
+                                    recent_actions=actions,
+                                )
+                            action = contract_route
                     if primary_fallback_active:
                         action, primary_ux_tap_pick_index = _sanitize_primary_ux_action(
                             action,
@@ -1749,6 +1904,8 @@ def run_llm_agent_session(
                     status = f"partial:{PARTIAL_OLLAMA_UNAVAILABLE}"
                     break
 
+    except AnalysisFailure:
+        raise
     except subprocess.TimeoutExpired as exc:
         logging.warning("LLM session hit subprocess timeout (continuing cleanup): %s", exc)
         if status == "success":
@@ -1804,6 +1961,19 @@ def run_llm_agent_session(
         elif execute_events and all(int(ev.get("interactive_element_count") or 0) == 0 for ev in execute_events):
             simulation_status = "failed:empty_execute_hierarchy"
             simulation_status_detail = "all execute observations were empty"
+        elif ux_goals and len(ux_goals) == 1:
+            lone_goal = ux_goals[0]
+            if _is_degenerate_transitions_goal(lone_goal):
+                simulation_status = "failed:degenerate_goal_plan"
+                simulation_status_detail = f"single_goal={lone_goal!r}"
+            elif _goal_needs_text_entry_field(lone_goal) and not _single_typing_goal_substantiated(
+                lone_goal, actions
+            ):
+                simulation_status = "failed:no_goal_progress"
+                simulation_status_detail = "single_typing_goal_without_input_event"
+            elif ux_goal_idx <= 0 and len(actions) >= 8:
+                simulation_status = "failed:no_goal_progress"
+                simulation_status_detail = f"single_goal_unadvanced index={ux_goal_idx}"
         elif ux_goals and len(ux_goals) > 1 and ux_goal_idx <= 0:
             simulation_status = "failed:no_goal_progress"
             simulation_status_detail = f"final_goal_index={ux_goal_idx} of {len(ux_goals)}"
